@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 local Settings = {
     AutoFarm = false,
     AutoClick = false,
-    GoldenHeist = false, -- เมนูดันทองคำ
+    GoldenHeist = false,
     TargetMob = "None",
     TargetIsland = "None",
     Distance = 4,
@@ -21,7 +21,7 @@ local Settings = {
 -- ==========================================
 -- 🎨 สร้าง Premium GUI (เพิ่มเมนู "ดันทองคำ")
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_GoldenHeist"
+local UI_Name = "PremiumRaidGUI_GoldenHeist_Fix"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -50,7 +50,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 350, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto (Golden Heist)"
+Title.Text = "Premium Raid Auto (Fixed Version)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
@@ -78,9 +78,19 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
 CloseBtn.Parent = TopBar
 local CloseCorner = Instance.new("UICorner") CloseCorner.CornerRadius = UDim.new(0, 6) CloseCorner.Parent = CloseBtn
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Sidebar (แถบเมนูด้านซ้าย)
+-- ปุ่มกากบาทกดเคลียร์ค่าฟิสิกส์ทั้งหมดก่อนปิด GUI ป้องกันตัวค้าง
+CloseBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char then
+        for _, p in ipairs(char:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = true end end
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
+    end
+    ScreenGui:Destroy()
+end)
+
+-- Sidebar
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 160, 1, -45)
 Sidebar.Position = UDim2.new(0, 0, 0, 45)
@@ -105,7 +115,6 @@ end
 local TabMain = createTabButton("Main", 0)
 local TabHeist = createTabButton("ดันทองคำ (Golden Heist)", 45)
 local TabTeleport = createTabButton("Teleport", 90)
-
 TabMain.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local ContentArea = Instance.new("Frame")
@@ -130,7 +139,6 @@ local PageMain = createPage()
 local PageHeist = createPage(); PageHeist.Visible = false
 local PageTP = createPage(); PageTP.Visible = false
 
--- สลับแท็บ
 local function switchTab(activePage, activeBtn)
     PageMain.Visible = (activePage == PageMain)
     PageHeist.Visible = (activePage == PageHeist)
@@ -188,7 +196,7 @@ local function CreateToggle(parent, text, flag)
     CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
     CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
     CheckboxFill.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-    CheckboxFill.Visible = false
+    CheckboxFill.Visible = Settings[flag]
     CheckboxFill.Parent = CheckboxBg
     local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
 
@@ -353,9 +361,8 @@ local function CreateButton(parent, text, callback)
 end
 
 -- ==========================================
--- 📝 เนื้อหาแต่ละแท็บ
+-- 📝 หน้าต่าง UI
 -- ==========================================
--- [1] แท็บ Main
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
@@ -377,9 +384,7 @@ CreateRealDropdown(PageMain, "Target Monster", "TargetMob", function()
     return mobs
 end)
 
--- [2] แท็บ ดันทองคำ (Golden Heist) -> ระบบ Priority Farm เดิม (Loot -> Gamblers -> Golden Statue)
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
-
 local HeistInfo = Instance.new("TextLabel")
 HeistInfo.Size = UDim2.new(1, -20, 0, 80)
 HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -387,11 +392,10 @@ HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150)
 HeistInfo.Font = Enum.Font.Gotham
 HeistInfo.TextSize = 15
 HeistInfo.TextWrapped = true
-HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร์ปเก็บของจากตู้ (Machines) ก่อนเสมอ\n2. โฟกัสตี Bankrupt Gamblers เป็นอันดับ 2\n3. โฟกัสตี Golden Statue เป็นอันดับสุดท้าย"
+HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ (ระบบป้องกันตัวค้างเสถียร):\n1. วาร์ปเก็บของจากตู้ (Machines)\n2. โฟกัสตี Bankrupt Gamblers\n3. โฟกัสตี Golden Statue เป็นตัวสุดท้าย"
 HeistInfo.Parent = PageHeist
 local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
 
--- [3] แท็บ Teleport
 CreateRealDropdown(PageTP, "Select Island", "TargetIsland", function()
     local isls = {"None"}
     local map = workspace:FindFirstChild("Map")
@@ -421,7 +425,7 @@ CreateButton(PageTP, "🚀 Teleport to Island", function()
     if targetIsland then
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            hrp.Velocity = Vector3.new(0,0,0)
+            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
             local spawner = targetIsland:FindFirstChild("Spawner", true)
             if spawner and spawner:IsA("BasePart") then
                 hrp.CFrame = spawner.CFrame * CFrame.new(0, 5, 0)
@@ -432,15 +436,18 @@ CreateButton(PageTP, "🚀 Teleport to Island", function()
     end
 end)
 
+TabMain.MouseButton1Click:Connect(function() switchTab(PageMain, TabMain) end)
+TabHeist.MouseButton1Click:Connect(function() switchTab(PageHeist, TabHeist) end)
+TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) end)
+
 -- ==========================================
--- 🧠 Core Loop รวมทุกระบบ
+-- 🧠 Core Loop (แก้บัควาร์ปรัวค้าง / ขยับไม่ได้)
 -- ==========================================
 local function getDropdownMonster()
     if Settings.TargetMob == "None" then return nil end
     local nearest, minDist = nil, math.huge
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local entities = workspace:FindFirstChild("Entities")
-    
     if not entities or not hrp then return nil end
     
     for _, obj in ipairs(entities:GetChildren()) do
@@ -457,11 +464,9 @@ local function getDropdownMonster()
     return nearest
 end
 
--- ระบบ Priority ของ ดันทองคำ (Golden Heist)
 local function getHeistTarget()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
-    
     local gamblers = {}
     local boss = nil
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -517,16 +522,25 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     
-    -- ล็อคความเร็ว Real-time
+    -- ล็อคสปีดแบบเรียลไทม์
     if hum and hum.Health > 0 then
         hum.WalkSpeed = Settings.WalkSpeed
     end
 
     if hrp then
-        for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
-        hrp.Velocity = Vector3.new(0,0,0)
-        
-        -- โหมด 1: ดันทองคำ (Golden Heist - สำคัญกว่า)
+        -- ถ้าเปิดระบบฟาร์มตัวใดตัวหนึ่ง ให้ปิดการชนเพื่อไม่ให้ติดมอน
+        if Settings.GoldenHeist or Settings.AutoFarm then
+            for _, part in ipairs(char:GetChildren()) do 
+                if part:IsA("BasePart") then part.CanCollide = false end 
+            end
+        else
+            -- ถ้าปิด Auto Farm ให้คืนค่าการชนเป๊ะๆ (แก้ปัญหาเดินไม่ได้หลังจากปิดสคริปต์)
+            for _, part in ipairs(char:GetChildren()) do 
+                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end 
+            end
+        end
+
+        -- โหมด 1: ดันทองคำ
         if Settings.GoldenHeist then
             local machinePart, prompt = getRewardMachine()
             if machinePart and prompt then
@@ -547,7 +561,7 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
                     end
                 end
             end
-        -- โหมด 2: Auto Farm ทั่วไปตามที่เลือกใน Dropdown
+        -- โหมด 2: ฟาร์มมอนทั่วไป
         elseif Settings.AutoFarm then
             local target = getDropdownMonster()
             if target then
