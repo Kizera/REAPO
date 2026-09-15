@@ -12,16 +12,16 @@ local Settings = {
     AutoFarm = false,
     AutoClick = false,
     GoldenHeist = false,
-    TargetMob = "None",
+    TargetSearch = "", -- ใช้ระบบพิมพ์ค้นหาแทน Dropdown (พิมพ์สั้นๆ เช่น "gobl" หรือปล่อยว่างเพื่อตีตัวใกล้สุดในแมพ)
     TargetIsland = "None",
     Distance = 4,
     WalkSpeed = 16
 }
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI (เพิ่มเมนู "ดันทองคำ")
+-- 🎨 สร้าง Premium GUI (ช่องพิมพ์ค้นหา + เรดาร์กวาดทั่วแมพ)
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_GoldenHeist_Fix"
+local UI_Name = "PremiumRaidGUI_V6_Search"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -47,10 +47,10 @@ TopBar.Parent = MainFrame
 local TopCorner = Instance.new("UICorner") TopCorner.CornerRadius = UDim.new(0, 10) TopCorner.Parent = TopBar
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 350, 1, 0)
+Title.Size = UDim2.new(0, 400, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto (Fixed Version)"
+Title.Text = "Premium Raid Auto V6 (Global Search)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
@@ -79,7 +79,6 @@ CloseBtn.TextSize = 18
 CloseBtn.Parent = TopBar
 local CloseCorner = Instance.new("UICorner") CloseCorner.CornerRadius = UDim.new(0, 6) CloseCorner.Parent = CloseBtn
 
--- ปุ่มกากบาทกดเคลียร์ค่าฟิสิกส์ทั้งหมดก่อนปิด GUI ป้องกันตัวค้าง
 CloseBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char then
@@ -261,6 +260,42 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     end)
 end
 
+-- 🔥 ช่องพิมพ์ค้นหามอนสเตอร์แทนการกดเลื่อน Dropdown
+local function CreateSearchBox(parent, text, flag)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -20, 0, 60)
+    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Frame.Parent = parent
+    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -30, 0, 25)
+    Label.Position = UDim2.new(0, 15, 0, 5)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 16
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Size = UDim2.new(1, -30, 0, 30)
+    TextBox.Position = UDim2.new(0, 15, 0, 25)
+    TextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    TextBox.Text = Settings[flag]
+    TextBox.PlaceholderText = "พิมพ์ชื่อมอน (เว้นว่าง = ตีตัวใกล้สุดในแมพ)"
+    TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextBox.Font = Enum.Font.Gotham
+    TextBox.TextSize = 14
+    TextBox.Parent = Frame
+    local TCorner = Instance.new("UICorner") TCorner.CornerRadius = UDim.new(0, 6) TCorner.Parent = TextBox
+
+    TextBox.FocusLost:Connect(function()
+        Settings[flag] = TextBox.Text
+    end)
+end
+
 local function CreateRealDropdown(parent, text, flag, getOptionsFunc)
     local Container = Instance.new("Frame")
     Container.Size = UDim2.new(1, -20, 0, 50) 
@@ -368,21 +403,8 @@ CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
 CreateSlider(PageMain, "Walk Speed", "WalkSpeed", 16, 100)
 
-CreateRealDropdown(PageMain, "Target Monster", "TargetMob", function()
-    local mobs = {"None"}
-    local entities = workspace:FindFirstChild("Entities")
-    if entities then
-        local found = {}
-        for _, obj in ipairs(entities:GetChildren()) do
-            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
-                local cleanName = string.gsub(obj.Name, "%d+$", "") 
-                cleanName = cleanName:match("^%s*(.-)%s*$")
-                if not found[cleanName] then found[cleanName] = true table.insert(mobs, cleanName) end
-            end
-        end
-    end
-    return mobs
-end)
+-- ใช้ช่องพิมพ์ค้นหาแทน Dropdown เดิม สะดวกกว่าเยอะ!
+CreateSearchBox(PageMain, "Target Monster Search", "TargetSearch")
 
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
 local HeistInfo = Instance.new("TextLabel")
@@ -392,7 +414,7 @@ HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150)
 HeistInfo.Font = Enum.Font.Gotham
 HeistInfo.TextSize = 15
 HeistInfo.TextWrapped = true
-HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ (ระบบป้องกันตัวค้างเสถียร):\n1. วาร์ปเก็บของจากตู้ (Machines)\n2. โฟกัสตี Bankrupt Gamblers\n3. โฟกัสตี Golden Statue เป็นตัวสุดท้าย"
+HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร์ปเก็บของจากตู้ (Machines)\n2. โฟกัสตี Bankrupt Gamblers\n3. โฟกัสตี Golden Statue เป็นตัวสุดท้าย"
 HeistInfo.Parent = PageHeist
 local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
 
@@ -441,26 +463,61 @@ TabHeist.MouseButton1Click:Connect(function() switchTab(PageHeist, TabHeist) end
 TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) end)
 
 -- ==========================================
--- 🧠 Core Loop (แก้บัควาร์ปรัวค้าง / ขยับไม่ได้)
+-- 🧠 Core Loop: Global Scan กวาดทั้งแมพแบบเรียลไทม์
 -- ==========================================
-local function getDropdownMonster()
-    if Settings.TargetMob == "None" then return nil end
+local function getGlobalMonster()
     local nearest, minDist = nil, math.huge
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local entities = workspace:FindFirstChild("Entities")
-    if not entities or not hrp then return nil end
+    if not hrp then return nil end
     
-    for _, obj in ipairs(entities:GetChildren()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
-            if string.match(string.lower(obj.Name), string.lower(Settings.TargetMob)) then
-                local mobRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
-                if mobRoot then
-                    local dist = (hrp.Position - mobRoot.Position).Magnitude
-                    if dist < minDist then minDist = dist; nearest = obj end
+    local searchText = string.lower(Settings.TargetSearch)
+    searchText = searchText:match("^%s*(.-)%s*$") -- ตัดช่องว่าง
+
+    -- ฟังก์ชันค้นหาแบบกวาดล้างทุกซอกทุกมุมใน Workspace (Global Scan)
+    local function scanFolder(parent)
+        for _, obj in ipairs(parent:GetChildren()) do
+            if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+                local hum = obj:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+                    local mobRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj.PrimaryPart
+                    if mobRoot then
+                        local objName = string.lower(obj.Name)
+                        local isMatch = false
+                        
+                        if searchText == "" then
+                            isMatch = true -- ถ้าไม่พิมพ์อะไรเลย กวาดตีทุกตัวในแมพที่ใกล้ที่สุด!
+                        elseif string.match(objName, searchText) then
+                            isMatch = true -- ถ้าพิมพ์ค้นหา จะเช็คคำที่ตรงกัน
+                        end
+                        
+                        if isMatch then
+                            local dist = (hrp.Position - mobRoot.Position).Magnitude
+                            if dist < minDist then
+                                minDist = dist
+                                nearest = obj
+                            end
+                        end
+                    end
                 end
+                -- วนหาเจาะลึกใน Model ย่อยต่อ
+                scanFolder(obj)
             end
         end
     end
+
+    -- สแกนทั้งโฟลเดอร์ Entities และ Workspace ภาพรวมทั้งหมด เพื่อไม่ให้พลาดมอนที่ซ่อนอยู่
+    local entities = workspace:FindFirstChild("Entities")
+    if entities then scanFolder(entities) end
+    
+    -- เผื่อเกมแยกลูกน้องไปไว้จุดอื่น กวาด workspace ภาพรวมเพิ่มด้วย
+    if not nearest then
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child.Name ~= "Terrain" and child.Name ~= "Camera" then
+                scanFolder(child)
+            end
+        end
+    end
+
     return nearest
 end
 
@@ -522,25 +579,21 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     
-    -- ล็อคสปีดแบบเรียลไทม์
     if hum and hum.Health > 0 then
         hum.WalkSpeed = Settings.WalkSpeed
     end
 
     if hrp then
-        -- ถ้าเปิดระบบฟาร์มตัวใดตัวหนึ่ง ให้ปิดการชนเพื่อไม่ให้ติดมอน
         if Settings.GoldenHeist or Settings.AutoFarm then
             for _, part in ipairs(char:GetChildren()) do 
                 if part:IsA("BasePart") then part.CanCollide = false end 
             end
         else
-            -- ถ้าปิด Auto Farm ให้คืนค่าการชนเป๊ะๆ (แก้ปัญหาเดินไม่ได้หลังจากปิดสคริปต์)
             for _, part in ipairs(char:GetChildren()) do 
                 if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end 
             end
         end
 
-        -- โหมด 1: ดันทองคำ
         if Settings.GoldenHeist then
             local machinePart, prompt = getRewardMachine()
             if machinePart and prompt then
@@ -561,11 +614,10 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
                     end
                 end
             end
-        -- โหมด 2: ฟาร์มมอนทั่วไป
         elseif Settings.AutoFarm then
-            local target = getDropdownMonster()
+            local target = getGlobalMonster()
             if target then
-                local tRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso")
+                local tRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
                 if tRoot then 
                     hrp.CFrame = CFrame.lookAt((tRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, tRoot.Position) 
                 end
