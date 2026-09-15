@@ -14,13 +14,13 @@ local Settings = {
     TargetMob = "None",
     TargetIsland = "None",
     Distance = 4,
-    WalkSpeed = 16 -- ค่าเริ่มต้น
+    WalkSpeed = 16
 }
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI (ไซส์ 3X ขยายใหญ่)
+-- 🎨 สร้าง Premium GUI (Titan Size + Minimize)
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V5"
+local UI_Name = "PremiumRaidGUI_V5_1"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -28,7 +28,6 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = UI_Name
 ScreenGui.Parent = parentUI
 
--- ขยายขนาด MainFrame ให้ใหญ่จุใจ
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 750, 0, 500) 
 MainFrame.Position = UDim2.new(0.5, -375, 0.5, -250)
@@ -40,7 +39,7 @@ MainFrame.Parent = ScreenGui
 local MainCorner = Instance.new("UICorner") MainCorner.CornerRadius = UDim.new(0, 10) MainCorner.Parent = MainFrame
 
 local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 45) -- ขยายแถบบน
+TopBar.Size = UDim2.new(1, 0, 0, 45)
 TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 TopBar.BorderSizePixel = 0
 TopBar.Parent = MainFrame
@@ -53,10 +52,23 @@ Title.BackgroundTransparency = 1
 Title.Text = "Premium Raid Auto V5 (Titan Size)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20 -- ขยายฟอนต์
+Title.TextSize = 20
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
+-- 🔥 ปุ่มย่อหน้าต่าง (Minimize)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 40, 0, 30)
+MinBtn.Position = UDim2.new(1, -95, 0, 7) -- วางไว้ข้างซ้ายของปุ่มปิด
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.Parent = TopBar
+local MinCorner = Instance.new("UICorner") MinCorner.CornerRadius = UDim.new(0, 6) MinCorner.Parent = MinBtn
+
+-- ปุ่มปิด (Close)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 40, 0, 30)
 CloseBtn.Position = UDim2.new(1, -50, 0, 7)
@@ -122,8 +134,19 @@ PageTP.Visible = false
 PageTP.Parent = ContentArea
 local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0, 8) UIList2.Parent = PageTP
 
+-- 🔥 ระบบย่อหน้าต่างทำงานตรงนี้
+local isMin = false
+MinBtn.MouseButton1Click:Connect(function()
+    isMin = not isMin
+    Sidebar.Visible = not isMin
+    ContentArea.Visible = not isMin
+    -- สลับขนาดความสูงระหว่าง 45 (พับ) กับ 500 (กางเต็ม)
+    MainFrame.Size = isMin and UDim2.new(0, 750, 0, 45) or UDim2.new(0, 750, 0, 500)
+    MinBtn.Text = isMin and "+" or "-"
+end)
+
 -- ==========================================
--- 🛠️ ฟังก์ชันสร้าง UI (แบบขยายสเกล)
+-- 🛠️ ฟังก์ชันสร้าง UI 
 -- ==========================================
 local function CreateToggle(parent, text, flag)
     local Frame = Instance.new("Frame")
@@ -165,7 +188,6 @@ local function CreateToggle(parent, text, flag)
     end)
 end
 
--- 🔥 Dropdown แบบกว้างพิเศษ
 local function CreateRealDropdown(parent, text, flag, getOptionsFunc)
     local Container = Instance.new("Frame")
     Container.Size = UDim2.new(1, -20, 0, 50) 
@@ -190,7 +212,6 @@ local function CreateRealDropdown(parent, text, flag, getOptionsFunc)
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = TopFrame
 
-    -- กล่อง Dropdown กว้างขึ้นมาก
     local DropBtn = Instance.new("TextButton")
     DropBtn.Size = UDim2.new(0.6, 0, 0, 35)
     DropBtn.Position = UDim2.new(1, -15, 0.5, -17.5)
@@ -327,7 +348,7 @@ end
 CreateToggle(PageMain, "Auto Farm", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
-CreateSlider(PageMain, "Walk Speed", "WalkSpeed", 16, 100) -- แถบปรับสปีด 16 ถึง 100
+CreateSlider(PageMain, "Walk Speed", "WalkSpeed", 16, 100)
 
 CreateRealDropdown(PageMain, "Target Monster", "TargetMob", function()
     local mobs = {"None"}
@@ -375,16 +396,12 @@ CreateButton(PageTP, "🚀 Teleport to Island", function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
             hrp.Velocity = Vector3.new(0,0,0)
-            
-            -- 🔥 [ลอจิกใหม่]: หา Spawner ก่อน ถ้าไม่มี ให้ดึงแกนกลาง (Pivot) ของเกาะแทน
             local spawner = targetIsland:FindFirstChild("Spawner", true)
             if spawner and spawner:IsA("BasePart") then
                 hrp.CFrame = spawner.CFrame * CFrame.new(0, 5, 0)
             else
-                -- ทะลวงจุดเกิด ถ้าเกมลบ Spawner ทิ้งไปแล้ว เราจะวาร์ปไปตรงกลางโมเดลเกาะเลย
                 hrp.CFrame = targetIsland:GetPivot() * CFrame.new(0, 20, 0)
             end
-            print("วาร์ปข้ามเกาะสำเร็จ!")
         end
     end
 end)
@@ -402,7 +419,7 @@ TabTeleport.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 🧠 Core Loop (วาร์ป & ล็อคสปีดแบบ Real-time)
+-- 🧠 Core Loop
 -- ==========================================
 local function getDropdownMonster()
     if Settings.TargetMob == "None" then return nil end
@@ -433,12 +450,10 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     
-    -- 🔥 ล็อคความเร็วแบบ Real-time (บังคับอัปเดตทุกเฟรม)
     if hum and hum.Health > 0 then
         hum.WalkSpeed = Settings.WalkSpeed
     end
 
-    -- ระบบวาร์ปตีมอน
     if Settings.AutoFarm and hrp then
         for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
         hrp.Velocity = Vector3.new(0,0,0)
