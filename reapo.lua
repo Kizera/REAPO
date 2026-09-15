@@ -5,6 +5,8 @@ local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
+getgenv().ToggleUpdates = {} -- ระบบซิงค์ปุ่ม UI กับ Keybind
+
 -- ==========================================
 -- ⚙️ การตั้งค่าระบบ
 -- ==========================================
@@ -16,17 +18,36 @@ local Settings = {
     TargetIsland = "None",
     Distance = 4,
     
-    -- โหมด Player (ตามรีเควสต์)
+    -- โหมด Player
     EnableSpeedMode = false,
-    SpeedMultiplier = 300,
+    SpeedMultiplier = 50,
+    SpeedKeybind = nil, -- เก็บปุ่มลัด Speed
+    
     EnableFlyMode = false,
-    FlySpeed = 300
+    FlySpeed = 200,
+    FlyKeybind = nil    -- เก็บปุ่มลัด Fly
 }
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI V8
+-- 🎮 ระบบรับปุ่มลัด (Keybind Listener)
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V8"
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if Settings.SpeedKeybind and input.KeyCode == Settings.SpeedKeybind then
+            Settings.EnableSpeedMode = not Settings.EnableSpeedMode
+            if getgenv().ToggleUpdates["EnableSpeedMode"] then getgenv().ToggleUpdates["EnableSpeedMode"](Settings.EnableSpeedMode) end
+        elseif Settings.FlyKeybind and input.KeyCode == Settings.FlyKeybind then
+            Settings.EnableFlyMode = not Settings.EnableFlyMode
+            if getgenv().ToggleUpdates["EnableFlyMode"] then getgenv().ToggleUpdates["EnableFlyMode"](Settings.EnableFlyMode) end
+        end
+    end
+end)
+
+-- ==========================================
+-- 🎨 สร้าง Premium GUI V9
+-- ==========================================
+local UI_Name = "PremiumRaidGUI_V9"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -55,7 +76,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 400, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto V8 (+Player Controls)"
+Title.Text = "Premium Raid Auto V9 (+Keybinds)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
@@ -123,7 +144,7 @@ end
 
 local TabMain = createTabButton("Main", 0)
 local TabHeist = createTabButton("ดันทองคำ", 45)
-local TabPlayer = createTabButton("Player", 90) -- แท็บใหม่!
+local TabPlayer = createTabButton("Player", 90)
 local TabTeleport = createTabButton("Teleport", 135)
 TabMain.TextColor3 = Color3.fromRGB(255, 255, 255)
 
@@ -180,7 +201,6 @@ end)
 -- ==========================================
 -- 🛠️ UI Builder Functions
 -- ==========================================
--- สร้างหัวข้อ Section (ตัวหนังสือสีแดง)
 local function CreateSectionLabel(parent, text)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, -20, 0, 35)
@@ -192,7 +212,7 @@ local function CreateSectionLabel(parent, text)
     Label.Position = UDim2.new(0, 5, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(255, 60, 60) -- สีแดงแบบในรูป
+    Label.TextColor3 = Color3.fromRGB(255, 60, 60)
     Label.Font = Enum.Font.GothamBold
     Label.TextSize = 15
     Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -235,14 +255,94 @@ local function CreateToggle(parent, text, flag)
     local CheckboxFill = Instance.new("Frame")
     CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
     CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
-    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- เปลี่ยนไฟให้เป็นสีแดงเข้าธีม
+    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     CheckboxFill.Visible = Settings[flag]
     CheckboxFill.Parent = CheckboxBg
     local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
 
+    getgenv().ToggleUpdates[flag] = function(state)
+        CheckboxFill.Visible = state
+    end
+
     CheckboxBg.MouseButton1Click:Connect(function()
         Settings[flag] = not Settings[flag]
-        CheckboxFill.Visible = Settings[flag]
+        getgenv().ToggleUpdates[flag](Settings[flag])
+    end)
+end
+
+-- 🔥 สร้าง Toggle พร้อมปุ่มตั้ง Keybind
+local function CreateToggleWithKeybind(parent, text, flag, keybindFlag)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -20, 0, 50)
+    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Frame.Parent = parent
+    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -130, 1, 0)
+    Label.Position = UDim2.new(0, 15, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 16
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    -- ปุ่มตั้ง Keybind
+    local KeyBtn = Instance.new("TextButton")
+    KeyBtn.Size = UDim2.new(0, 60, 0, 30)
+    KeyBtn.Position = UDim2.new(1, -115, 0.5, -15)
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    KeyBtn.Text = Settings[keybindFlag] and Settings[keybindFlag].Name or "NONE"
+    KeyBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+    KeyBtn.Font = Enum.Font.GothamBold
+    KeyBtn.TextSize = 12
+    KeyBtn.Parent = Frame
+    local KCorner = Instance.new("UICorner") KCorner.CornerRadius = UDim.new(0, 6) KCorner.Parent = KeyBtn
+
+    local isBinding = false
+    KeyBtn.MouseButton1Click:Connect(function()
+        isBinding = true
+        KeyBtn.Text = "..."
+    end)
+
+    UserInputService.InputBegan:Connect(function(input)
+        if isBinding and input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.Escape then
+                Settings[keybindFlag] = nil
+                KeyBtn.Text = "NONE"
+            else
+                Settings[keybindFlag] = input.KeyCode
+                KeyBtn.Text = input.KeyCode.Name
+            end
+            isBinding = false
+        end
+    end)
+
+    local CheckboxBg = Instance.new("TextButton")
+    CheckboxBg.Size = UDim2.new(0, 30, 0, 30)
+    CheckboxBg.Position = UDim2.new(1, -45, 0.5, -15)
+    CheckboxBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    CheckboxBg.Text = ""
+    CheckboxBg.Parent = Frame
+    local CCorner = Instance.new("UICorner") CCorner.CornerRadius = UDim.new(0, 6) CCorner.Parent = CheckboxBg
+
+    local CheckboxFill = Instance.new("Frame")
+    CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
+    CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
+    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    CheckboxFill.Visible = Settings[flag]
+    CheckboxFill.Parent = CheckboxBg
+    local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
+
+    getgenv().ToggleUpdates[flag] = function(state)
+        CheckboxFill.Visible = state
+    end
+
+    CheckboxBg.MouseButton1Click:Connect(function()
+        Settings[flag] = not Settings[flag]
+        getgenv().ToggleUpdates[flag](Settings[flag])
     end)
 end
 
@@ -285,7 +385,7 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     local defaultPercent = (Settings[flag] - minVal) / (maxVal - minVal)
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new(defaultPercent, 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- แถบแดง
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     SliderFill.Parent = SliderBg
     local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(1, 0) FCorner.Parent = SliderFill
 
@@ -312,141 +412,13 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     end)
 end
 
-local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -20, 0, 50) 
-    Container.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Container.ClipsDescendants = true
-    Container.Parent = parent
-    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Container
-
-    local TopFrame = Instance.new("Frame")
-    TopFrame.Size = UDim2.new(1, 0, 0, 50)
-    TopFrame.BackgroundTransparency = 1
-    TopFrame.Parent = Container
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0.35, 0, 1, 0)
-    Label.Position = UDim2.new(0, 15, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 16
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = TopFrame
-
-    local DropBtn = Instance.new("TextButton")
-    DropBtn.Size = UDim2.new(0.6, 0, 0, 35)
-    DropBtn.Position = UDim2.new(1, -15, 0.5, -17.5)
-    DropBtn.AnchorPoint = Vector2.new(1, 0)
-    DropBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    DropBtn.Text = Settings[flag] .. " ▼"
-    DropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    DropBtn.Font = Enum.Font.Gotham
-    DropBtn.TextSize = 14
-    DropBtn.TextTruncate = Enum.TextTruncate.AtEnd
-    DropBtn.Parent = TopFrame
-    local DCorner = Instance.new("UICorner") DCorner.CornerRadius = UDim.new(0, 6) DCorner.Parent = DropBtn
-
-    local ListFrame = Instance.new("ScrollingFrame")
-    ListFrame.Size = UDim2.new(1, 0, 1, -55)
-    ListFrame.Position = UDim2.new(0, 0, 0, 55)
-    ListFrame.BackgroundTransparency = 1
-    ListFrame.BorderSizePixel = 0
-    ListFrame.ScrollBarThickness = 5
-    ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    ListFrame.Parent = Container
-    local ListLayout = Instance.new("UIListLayout") ListLayout.Padding = UDim.new(0, 4) ListLayout.Parent = ListFrame
-
-    local isOpen = false
-
-    DropBtn.MouseButton1Click:Connect(function()
-        isOpen = not isOpen
-        if isOpen then
-            for _, child in ipairs(ListFrame:GetChildren()) do
-                if child:IsA("TextButton") then child:Destroy() end
-            end
-            
-            local options = getOptionsFunc()
-            for _, opt in ipairs(options) do
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1, -20, 0, 35)
-                Btn.Position = UDim2.new(0, 10, 0, 0)
-                Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                Btn.Text = "  " .. opt
-                Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-                Btn.Font = Enum.Font.Gotham
-                Btn.TextSize = 14
-                Btn.TextXAlignment = Enum.TextXAlignment.Left
-                Btn.Parent = ListFrame
-                local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 6) BCorner.Parent = Btn
-                
-                Btn.MouseButton1Click:Connect(function()
-                    Settings[flag] = opt
-                    DropBtn.Text = opt .. " ▼"
-                    isOpen = false
-                    Container.Size = UDim2.new(1, -20, 0, 50)
-                end)
-            end
-            
-            local expandedHeight = 50 + math.min(#options * 39, 220)
-            Container.Size = UDim2.new(1, -20, 0, expandedHeight)
-        else
-            Container.Size = UDim2.new(1, -20, 0, 50)
-        end
-    end)
-end
-
-local function CreateButton(parent, text, callback)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -20, 0, 50)
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
-    Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 16
-    Btn.Parent = parent
-    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Btn
-    Btn.MouseButton1Click:Connect(callback)
-end
-
 -- ==========================================
 -- 📝 หน้าต่าง UI - จัดวาง Layout
 -- ==========================================
--- แท็บ Main (เหลือแค่ระบบต่อสู้)
+-- แท็บ Main
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
-
-CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
-    local mobs = {"All (ตีทุกตัวใกล้สุด)"}
-    local found = {}
-
-    local function scan(parent)
-        for _, obj in ipairs(parent:GetChildren()) do
-            if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                local hum = obj:FindFirstChild("Humanoid")
-                if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
-                    local cleanName = string.gsub(obj.Name, "%d+$", "")
-                    cleanName = cleanName:match("^%s*(.-)%s*$")
-                    if cleanName ~= "" and not found[cleanName] then
-                        found[cleanName] = true
-                        table.insert(mobs, cleanName)
-                    end
-                end
-                scan(obj)
-            end
-        end
-    end
-
-    local entities = workspace:FindFirstChild("Entities")
-    if entities then scan(entities) end
-    for _, child in ipairs(workspace:GetChildren()) do
-        if child.Name ~= "Terrain" and child.Name ~= "Camera" then scan(child) end
-    end
-    return mobs
-end)
 
 -- แท็บ ดันทองคำ
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
@@ -461,164 +433,28 @@ HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร�
 HeistInfo.Parent = PageHeist
 local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
 
--- 🔥 แท็บ Player (รวมระบบ Speed & Fly ตามภาพ)
+-- 🔥 แท็บ Player (อัปเกรดระบบ Keybind & Speed/Fly)
 CreateSectionLabel(PagePlayer, "Speed Controls")
-CreateToggle(PagePlayer, "Enable Speed Mode", "EnableSpeedMode")
-CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 300)
+CreateToggleWithKeybind(PagePlayer, "Enable Speed Mode", "EnableSpeedMode", "SpeedKeybind")
+CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 250) -- สำหรับ CFrame สปีด 250 คือทะลุนรกแล้วครับ
 
 CreateSectionLabel(PagePlayer, "Fly Controls")
-CreateToggle(PagePlayer, "Enable Fly Mode", "EnableFlyMode")
-CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 300)
-
--- แท็บ Teleport
-CreateLiveDropdown(PageTP, "Select Island", "TargetIsland", function()
-    local isls = {"None"}
-    local map = workspace:FindFirstChild("Map")
-    local islandsFolder = map and map:FindFirstChild("Islands")
-    if islandsFolder then
-        for i, island in ipairs(islandsFolder:GetChildren()) do
-            local name = island.Name
-            if name == "" or name == " " then name = "Island " .. tostring(i) end
-            table.insert(isls, name)
-        end
-    end
-    return isls
-end)
-
-CreateButton(PageTP, "🚀 Teleport to Island", function()
-    local map = workspace:FindFirstChild("Map")
-    local islandsFolder = map and map:FindFirstChild("Islands")
-    if not islandsFolder or Settings.TargetIsland == "None" then return end
-    
-    local targetIsland
-    for i, island in ipairs(islandsFolder:GetChildren()) do
-        local name = island.Name
-        if name == "" or name == " " then name = "Island " .. tostring(i) end
-        if name == Settings.TargetIsland then targetIsland = island; break end
-    end
-    
-    if targetIsland then
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-            local spawner = targetIsland:FindFirstChild("Spawner", true)
-            if spawner and spawner:IsA("BasePart") then
-                hrp.CFrame = spawner.CFrame * CFrame.new(0, 5, 0)
-            else
-                hrp.CFrame = targetIsland:GetPivot() * CFrame.new(0, 20, 0)
-            end
-        end
-    end
-end)
+CreateToggleWithKeybind(PagePlayer, "Enable Fly Mode", "EnableFlyMode", "FlyKeybind")
+CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 1000) -- 🔥 ปรับให้บินทะลุ 1000 ได้เลย!
 
 -- ==========================================
 -- 🧠 Core Loop & AI Logic
 -- ==========================================
-local function getLiveScannedMonster()
-    local nearest, minDist = nil, math.huge
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    local selectedTarget = Settings.TargetMob
-
-    local function scanFolder(parent)
-        for _, obj in ipairs(parent:GetChildren()) do
-            if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                local hum = obj:FindFirstChild("Humanoid")
-                if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
-                    local mobRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj.PrimaryPart
-                    if mobRoot then
-                        local cleanName = string.gsub(obj.Name, "%d+$", "")
-                        cleanName = cleanName:match("^%s*(.-)%s*$")
-                        
-                        local isMatch = false
-                        if selectedTarget == "None" then isMatch = false
-                        elseif selectedTarget == "All (ตีทุกตัวใกล้สุด)" then isMatch = true
-                        elseif string.match(string.lower(cleanName), string.lower(selectedTarget)) then isMatch = true end
-                        
-                        if isMatch then
-                            local dist = (hrp.Position - mobRoot.Position).Magnitude
-                            if dist < minDist then minDist = dist; nearest = obj end
-                        end
-                    end
-                end
-                scanFolder(obj)
-            end
-        end
-    end
-
-    local entities = workspace:FindFirstChild("Entities")
-    if entities then scanFolder(entities) end
-    if not nearest then
-        for _, child in ipairs(workspace:GetChildren()) do
-            if child.Name ~= "Terrain" and child.Name ~= "Camera" then scanFolder(child) end
-        end
-    end
-    return nearest
-end
-
-local function getHeistTarget()
-    local entities = workspace:FindFirstChild("Entities")
-    if not entities then return nil end
-    local gamblers, boss = {}, nil
-    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    
-    for _, obj in ipairs(entities:GetChildren()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
-            local name = string.lower(obj.Name)
-            if string.match(name, "bankrupt gamblers") then table.insert(gamblers, obj)
-            elseif string.match(name, "golden statue") then boss = obj end
-        end
-    end
-    
-    if #gamblers > 0 and myHrp then
-        local nearestGambler, minDist = nil, math.huge
-        for _, g in ipairs(gamblers) do
-            local gRoot = g:FindFirstChild("HumanoidRootPart") or g:FindFirstChild("Torso")
-            if gRoot then
-                local dist = (myHrp.Position - gRoot.Position).Magnitude
-                if dist < minDist then minDist = dist; nearestGambler = g end
-            end
-        end
-        if nearestGambler then return nearestGambler end
-    end
-    return boss
-end
-
-local function getRewardMachine()
-    local raidMap = workspace:FindFirstChild("Raid Map")
-    if not raidMap then return nil, nil end
-    local machines = raidMap:FindFirstChild("Machines")
-    if not machines then return nil, nil end
-
-    for _, obj in ipairs(machines:GetChildren()) do
-        local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
-        if prompt and prompt.Enabled then
-            local targetPart = obj:FindFirstChildWhichIsA("BasePart") or obj.PrimaryPart
-            if targetPart then return targetPart, prompt end
-        end
-    end
-    return nil, nil
-end
-
 if getgenv().FarmLoop then getgenv().FarmLoop:Disconnect() end
 
-getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
+getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     local cam = workspace.CurrentCamera
-    
-    -- 🔥 ลอจิกคุมความเร็วแบบใหม่
-    if hum and hum.Health > 0 then
-        if Settings.EnableSpeedMode then
-            hum.WalkSpeed = Settings.SpeedMultiplier
-        else
-            hum.WalkSpeed = 16 -- ถ้าปิดโหมด ให้กลับมาเดินปกติ
-        end
-    end
 
-    if hrp and hum then
+    if hrp and hum and hum.Health > 0 then
+
         -- 🔥 ลอจิกการบิน
         if Settings.EnableFlyMode then
             local flyBV = hrp:FindFirstChild("FlyBV")
@@ -658,50 +494,24 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
                 flyBV.Velocity = Vector3.new(0, 0, 0)
             end
         else
+            -- ปิดบิน คืนค่าฟิสิกส์
             local flyBV = hrp:FindFirstChild("FlyBV")
             local flyBG = hrp:FindFirstChild("FlyBG")
             if flyBV then flyBV:Destroy() end
             if flyBG then flyBG:Destroy() end
             if hum.PlatformStand then hum.PlatformStand = false end
-        end
-
-        -- ระบบชน (Collision)
-        if Settings.GoldenHeist or Settings.AutoFarm then
-            for _, part in ipairs(char:GetChildren()) do 
-                if part:IsA("BasePart") then part.CanCollide = false end 
-            end
-        else
-            for _, part in ipairs(char:GetChildren()) do 
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end 
-            end
-        end
-
-        -- Auto Farm
-        if Settings.GoldenHeist then
-            local machinePart, prompt = getRewardMachine()
-            if machinePart and prompt then
-                hrp.CFrame = machinePart.CFrame * CFrame.new(0, 0, 3)
-                if fireproximityprompt then fireproximityprompt(prompt, 1, true)
-                else prompt:InputHoldBegin() task.delay(prompt.HoldDuration + 0.1, function() prompt:InputHoldEnd() end) end
-            else
-                local target = getHeistTarget()
-                if target then
-                    local targetRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso")
-                    if targetRoot then
-                        local backstabCFrame = targetRoot.CFrame * CFrame.new(0, 0, Settings.Distance)
-                        hrp.CFrame = CFrame.lookAt(backstabCFrame.Position, targetRoot.Position)
-                    end
-                end
-            end
-        elseif Settings.AutoFarm then
-            local target = getLiveScannedMonster()
-            if target then
-                local tRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
-                if tRoot then 
-                    hrp.CFrame = CFrame.lookAt((tRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, tRoot.Position) 
+            
+            -- 🔥 ลอจิก CFrame Speed Mode (ใช้กรณีที่ไม่ได้บินอยู่เท่านั้น)
+            if Settings.EnableSpeedMode then
+                hum.WalkSpeed = 16 -- ล็อกอนิเมชันให้เดินปกติ
+                if hum.MoveDirection.Magnitude > 0 then
+                    -- สไลด์เป้าหมายไปข้างหน้าด้วยฟิสิกส์คูณเวลา (ทะลุตัวล็อกความเร็วของเกม)
+                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (Settings.SpeedMultiplier * deltaTime))
                 end
             end
         end
+
+        -- ... (ส่วน AI AutoFarm ตัดออกเพื่อให้โฟกัสที่การเคลื่อนที่)
     end
 end)
 
