@@ -12,18 +12,21 @@ local Settings = {
     AutoFarm = false,
     AutoClick = false,
     GoldenHeist = false,
-    FlyMode = false, -- 🔥 โหมดบิน
     TargetMob = "None",
     TargetIsland = "None",
     Distance = 4,
-    WalkSpeed = 16,
-    FlySpeed = 50    -- 🔥 ความเร็วบินเริ่มต้น
+    
+    -- โหมด Player (ตามรีเควสต์)
+    EnableSpeedMode = false,
+    SpeedMultiplier = 300,
+    EnableFlyMode = false,
+    FlySpeed = 300
 }
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI
+-- 🎨 สร้าง Premium GUI V8
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V7_Fly"
+local UI_Name = "PremiumRaidGUI_V8"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -52,7 +55,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 400, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto V7 (+Fly Mode)"
+Title.Text = "Premium Raid Auto V8 (+Player Controls)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
@@ -81,7 +84,6 @@ CloseBtn.TextSize = 18
 CloseBtn.Parent = TopBar
 local CloseCorner = Instance.new("UICorner") CloseCorner.CornerRadius = UDim.new(0, 6) CloseCorner.Parent = CloseBtn
 
--- ป้องกันตัวค้างตอนกดปิด GUI
 CloseBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char then
@@ -120,8 +122,9 @@ local function createTabButton(text, yPos)
 end
 
 local TabMain = createTabButton("Main", 0)
-local TabHeist = createTabButton("ดันทองคำ (Golden Heist)", 45)
-local TabTeleport = createTabButton("Teleport", 90)
+local TabHeist = createTabButton("ดันทองคำ", 45)
+local TabPlayer = createTabButton("Player", 90) -- แท็บใหม่!
+local TabTeleport = createTabButton("Teleport", 135)
 TabMain.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local ContentArea = Instance.new("Frame")
@@ -144,21 +147,25 @@ end
 
 local PageMain = createPage()
 local PageHeist = createPage(); PageHeist.Visible = false
+local PagePlayer = createPage(); PagePlayer.Visible = false
 local PageTP = createPage(); PageTP.Visible = false
 
 local function switchTab(activePage, activeBtn)
     PageMain.Visible = (activePage == PageMain)
     PageHeist.Visible = (activePage == PageHeist)
+    PagePlayer.Visible = (activePage == PagePlayer)
     PageTP.Visible = (activePage == PageTP)
     
     TabMain.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabHeist.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabPlayer.TextColor3 = Color3.fromRGB(150, 150, 150)
     TabTeleport.TextColor3 = Color3.fromRGB(150, 150, 150)
     activeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
 TabMain.MouseButton1Click:Connect(function() switchTab(PageMain, TabMain) end)
 TabHeist.MouseButton1Click:Connect(function() switchTab(PageHeist, TabHeist) end)
+TabPlayer.MouseButton1Click:Connect(function() switchTab(PagePlayer, TabPlayer) end)
 TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) end)
 
 local isMin = false
@@ -173,6 +180,32 @@ end)
 -- ==========================================
 -- 🛠️ UI Builder Functions
 -- ==========================================
+-- สร้างหัวข้อ Section (ตัวหนังสือสีแดง)
+local function CreateSectionLabel(parent, text)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -20, 0, 35)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = parent
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(255, 60, 60) -- สีแดงแบบในรูป
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 15
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+    
+    local Line = Instance.new("Frame")
+    Line.Size = UDim2.new(1, -5, 0, 1)
+    Line.Position = UDim2.new(0, 5, 1, -5)
+    Line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Line.BorderSizePixel = 0
+    Line.Parent = Frame
+end
+
 local function CreateToggle(parent, text, flag)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, -20, 0, 50)
@@ -187,7 +220,7 @@ local function CreateToggle(parent, text, flag)
     Label.Text = text
     Label.TextColor3 = Color3.fromRGB(220, 220, 220)
     Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 18
+    Label.TextSize = 16
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Frame
 
@@ -202,7 +235,7 @@ local function CreateToggle(parent, text, flag)
     local CheckboxFill = Instance.new("Frame")
     CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
     CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
-    CheckboxFill.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- เปลี่ยนไฟให้เป็นสีแดงเข้าธีม
     CheckboxFill.Visible = Settings[flag]
     CheckboxFill.Parent = CheckboxBg
     local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
@@ -224,15 +257,26 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     Label.Size = UDim2.new(1, -30, 0, 30)
     Label.Position = UDim2.new(0, 15, 0, 5)
     Label.BackgroundTransparency = 1
-    Label.Text = text .. ": " .. Settings[flag]
+    Label.Text = text
     Label.TextColor3 = Color3.fromRGB(220, 220, 220)
     Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 18
+    Label.TextSize = 16
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Frame
 
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0, 50, 0, 30)
+    ValueLabel.Position = UDim2.new(1, -65, 0, 5)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = Settings[flag]
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 60, 60)
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextSize = 16
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = Frame
+
     local SliderBg = Instance.new("Frame")
-    SliderBg.Size = UDim2.new(1, -30, 0, 12)
+    SliderBg.Size = UDim2.new(1, -30, 0, 10)
     SliderBg.Position = UDim2.new(0, 15, 0, 45)
     SliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
     SliderBg.Parent = Frame
@@ -241,7 +285,7 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     local defaultPercent = (Settings[flag] - minVal) / (maxVal - minVal)
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new(defaultPercent, 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(40, 200, 255)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60) -- แถบแดง
     SliderFill.Parent = SliderBg
     local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(1, 0) FCorner.Parent = SliderFill
 
@@ -263,7 +307,7 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
             local percent = relativeX / SliderBg.AbsoluteSize.X
             Settings[flag] = math.floor(minVal + ((maxVal - minVal) * percent))
             SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            Label.Text = text .. ": " .. Settings[flag]
+            ValueLabel.Text = Settings[flag]
         end
     end)
 end
@@ -288,7 +332,7 @@ local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
     Label.Text = text
     Label.TextColor3 = Color3.fromRGB(220, 220, 220)
     Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 18
+    Label.TextSize = 16
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = TopFrame
 
@@ -300,7 +344,7 @@ local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
     DropBtn.Text = Settings[flag] .. " ▼"
     DropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     DropBtn.Font = Enum.Font.Gotham
-    DropBtn.TextSize = 16
+    DropBtn.TextSize = 14
     DropBtn.TextTruncate = Enum.TextTruncate.AtEnd
     DropBtn.Parent = TopFrame
     local DCorner = Instance.new("UICorner") DCorner.CornerRadius = UDim.new(0, 6) DCorner.Parent = DropBtn
@@ -333,7 +377,7 @@ local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
                 Btn.Text = "  " .. opt
                 Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
                 Btn.Font = Enum.Font.Gotham
-                Btn.TextSize = 16
+                Btn.TextSize = 14
                 Btn.TextXAlignment = Enum.TextXAlignment.Left
                 Btn.Parent = ListFrame
                 local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 6) BCorner.Parent = Btn
@@ -361,22 +405,19 @@ local function CreateButton(parent, text, callback)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 18
+    Btn.TextSize = 16
     Btn.Parent = parent
     local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Btn
     Btn.MouseButton1Click:Connect(callback)
 end
 
 -- ==========================================
--- 📝 หน้าต่าง UI (เพิ่มเมนู Fly)
+-- 📝 หน้าต่าง UI - จัดวาง Layout
 -- ==========================================
--- แท็บ Main
-CreateToggle(PageMain, "Fly Mode (บิน)", "FlyMode") -- 🔥 ปุ่มเปิดปิดบิน
-CreateSlider(PageMain, "Fly Speed", "FlySpeed", 16, 300) -- 🔥 ปรับสปีดบินได้ถึง 300
+-- แท็บ Main (เหลือแค่ระบบต่อสู้)
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
-CreateSlider(PageMain, "Walk Speed", "WalkSpeed", 16, 100)
 
 CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
     local mobs = {"All (ตีทุกตัวใกล้สุด)"}
@@ -404,7 +445,6 @@ CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
     for _, child in ipairs(workspace:GetChildren()) do
         if child.Name ~= "Terrain" and child.Name ~= "Camera" then scan(child) end
     end
-
     return mobs
 end)
 
@@ -420,6 +460,15 @@ HeistInfo.TextWrapped = true
 HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร์ปเก็บของจากตู้ (Machines)\n2. โฟกัสตี Bankrupt Gamblers\n3. โฟกัสตี Golden Statue เป็นตัวสุดท้าย"
 HeistInfo.Parent = PageHeist
 local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
+
+-- 🔥 แท็บ Player (รวมระบบ Speed & Fly ตามภาพ)
+CreateSectionLabel(PagePlayer, "Speed Controls")
+CreateToggle(PagePlayer, "Enable Speed Mode", "EnableSpeedMode")
+CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 300)
+
+CreateSectionLabel(PagePlayer, "Fly Controls")
+CreateToggle(PagePlayer, "Enable Fly Mode", "EnableFlyMode")
+CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 300)
 
 -- แท็บ Teleport
 CreateLiveDropdown(PageTP, "Select Island", "TargetIsland", function()
@@ -483,13 +532,9 @@ local function getLiveScannedMonster()
                         cleanName = cleanName:match("^%s*(.-)%s*$")
                         
                         local isMatch = false
-                        if selectedTarget == "None" then
-                            isMatch = false
-                        elseif selectedTarget == "All (ตีทุกตัวใกล้สุด)" then
-                            isMatch = true
-                        elseif string.match(string.lower(cleanName), string.lower(selectedTarget)) then
-                            isMatch = true
-                        end
+                        if selectedTarget == "None" then isMatch = false
+                        elseif selectedTarget == "All (ตีทุกตัวใกล้สุด)" then isMatch = true
+                        elseif string.match(string.lower(cleanName), string.lower(selectedTarget)) then isMatch = true end
                         
                         if isMatch then
                             local dist = (hrp.Position - mobRoot.Position).Magnitude
@@ -564,13 +609,18 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChild("Humanoid")
     local cam = workspace.CurrentCamera
     
+    -- 🔥 ลอจิกคุมความเร็วแบบใหม่
     if hum and hum.Health > 0 then
-        hum.WalkSpeed = Settings.WalkSpeed
+        if Settings.EnableSpeedMode then
+            hum.WalkSpeed = Settings.SpeedMultiplier
+        else
+            hum.WalkSpeed = 16 -- ถ้าปิดโหมด ให้กลับมาเดินปกติ
+        end
     end
 
     if hrp and hum then
-        -- 🔥 ระบบจัดการฟิสิกส์การบิน (Fly Physics)
-        if Settings.FlyMode then
+        -- 🔥 ลอจิกการบิน
+        if Settings.EnableFlyMode then
             local flyBV = hrp:FindFirstChild("FlyBV")
             local flyBG = hrp:FindFirstChild("FlyBG")
             
@@ -588,20 +638,16 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
                 flyBG.Parent = hrp
             end
             
-            hum.PlatformStand = true -- ป้องกันขากระตุกตอนบิน
-            flyBG.CFrame = cam.CFrame -- ให้ตัวละครหันหน้าตามมุมกล้อง
+            hum.PlatformStand = true
+            flyBG.CFrame = cam.CFrame
             
             local dir = Vector3.new(0,0,0)
-            
-            -- รองรับปุ่มกด PC (WASD)
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
             
-            -- รองรับจอยสติ๊กมือถือ (Thumbstick)
             if dir.Magnitude == 0 and hum.MoveDirection.Magnitude > 0 then
-                -- แปลงทิศทางการเดินของจอยสติ๊ก ให้เชิดหน้าขึ้น/ลง ตามมุมกล้อง 3D
                 local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
                 dir = cam.CFrame:VectorToWorldSpace(localMove)
             end
@@ -612,7 +658,6 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
                 flyBV.Velocity = Vector3.new(0, 0, 0)
             end
         else
-            -- เคลียร์ระบบบินทิ้งเมื่อกดปิด
             local flyBV = hrp:FindFirstChild("FlyBV")
             local flyBG = hrp:FindFirstChild("FlyBG")
             if flyBV then flyBV:Destroy() end
@@ -620,7 +665,7 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
             if hum.PlatformStand then hum.PlatformStand = false end
         end
 
-        -- ระบบชน (Collision) สำหรับ Auto Farm
+        -- ระบบชน (Collision)
         if Settings.GoldenHeist or Settings.AutoFarm then
             for _, part in ipairs(char:GetChildren()) do 
                 if part:IsA("BasePart") then part.CanCollide = false end 
@@ -631,17 +676,13 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
             end
         end
 
-        -- Logic Auto Farm
+        -- Auto Farm
         if Settings.GoldenHeist then
             local machinePart, prompt = getRewardMachine()
             if machinePart and prompt then
                 hrp.CFrame = machinePart.CFrame * CFrame.new(0, 0, 3)
-                if fireproximityprompt then
-                    fireproximityprompt(prompt, 1, true)
-                else
-                    prompt:InputHoldBegin()
-                    task.delay(prompt.HoldDuration + 0.1, function() prompt:InputHoldEnd() end)
-                end
+                if fireproximityprompt then fireproximityprompt(prompt, 1, true)
+                else prompt:InputHoldBegin() task.delay(prompt.HoldDuration + 0.1, function() prompt:InputHoldEnd() end) end
             else
                 local target = getHeistTarget()
                 if target then
