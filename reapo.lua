@@ -12,16 +12,18 @@ local Settings = {
     AutoFarm = false,
     AutoClick = false,
     GoldenHeist = false,
-    TargetMob = "None", -- มอนสเตอร์ที่เลือกจากลิสต์สด
+    FlyMode = false, -- 🔥 โหมดบิน
+    TargetMob = "None",
     TargetIsland = "None",
     Distance = 4,
-    WalkSpeed = 16
+    WalkSpeed = 16,
+    FlySpeed = 50    -- 🔥 ความเร็วบินเริ่มต้น
 }
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI (Live Scanner)
+-- 🎨 สร้าง Premium GUI
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_LiveScan"
+local UI_Name = "PremiumRaidGUI_V7_Fly"
 local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
 
@@ -50,7 +52,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 400, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto (Live Monster Radar)"
+Title.Text = "Premium Raid Auto V7 (+Fly Mode)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
@@ -79,12 +81,18 @@ CloseBtn.TextSize = 18
 CloseBtn.Parent = TopBar
 local CloseCorner = Instance.new("UICorner") CloseCorner.CornerRadius = UDim.new(0, 6) CloseCorner.Parent = CloseBtn
 
+-- ป้องกันตัวค้างตอนกดปิด GUI
 CloseBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local fbv = hrp:FindFirstChild("FlyBV") if fbv then fbv:Destroy() end
+            local fbg = hrp:FindFirstChild("FlyBG") if fbg then fbg:Destroy() end
+        end
         for _, p in ipairs(char:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = true end end
         local hum = char:FindFirstChild("Humanoid")
-        if hum then hum.WalkSpeed = 16 end
+        if hum then hum.WalkSpeed = 16 hum.PlatformStand = false end
     end
     ScreenGui:Destroy()
 end)
@@ -260,7 +268,6 @@ local function CreateSlider(parent, text, flag, minVal, maxVal)
     end)
 end
 
--- 🔥 Dropdown สแกนมอนสเตอร์สดๆ ทั้งแมพแบบอัตโนมัติ
 local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
     local Container = Instance.new("Frame")
     Container.Size = UDim2.new(1, -20, 0, 50) 
@@ -361,14 +368,16 @@ local function CreateButton(parent, text, callback)
 end
 
 -- ==========================================
--- 📝 หน้าต่าง UI
+-- 📝 หน้าต่าง UI (เพิ่มเมนู Fly)
 -- ==========================================
+-- แท็บ Main
+CreateToggle(PageMain, "Fly Mode (บิน)", "FlyMode") -- 🔥 ปุ่มเปิดปิดบิน
+CreateSlider(PageMain, "Fly Speed", "FlySpeed", 16, 300) -- 🔥 ปรับสปีดบินได้ถึง 300
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
 CreateSlider(PageMain, "Walk Speed", "WalkSpeed", 16, 100)
 
--- 🔥 Dropdown แสดงรายชื่อมอนสเตอร์สดๆ ทั้งแมพ (เลือก "All (ตีทุกตัวใกล้สุด)" ได้ หรือเลือกเจาะจงชื่อมอนได้เลย)
 CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
     local mobs = {"All (ตีทุกตัวใกล้สุด)"}
     local found = {}
@@ -399,6 +408,7 @@ CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
     return mobs
 end)
 
+-- แท็บ ดันทองคำ
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
 local HeistInfo = Instance.new("TextLabel")
 HeistInfo.Size = UDim2.new(1, -20, 0, 80)
@@ -411,6 +421,7 @@ HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร�
 HeistInfo.Parent = PageHeist
 local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
 
+-- แท็บ Teleport
 CreateLiveDropdown(PageTP, "Select Island", "TargetIsland", function()
     local isls = {"None"}
     local map = workspace:FindFirstChild("Map")
@@ -451,12 +462,8 @@ CreateButton(PageTP, "🚀 Teleport to Island", function()
     end
 end)
 
-TabMain.MouseButton1Click:Connect(function() switchTab(PageMain, TabMain) end)
-TabHeist.MouseButton1Click:Connect(function() switchTab(PageHeist, TabHeist) end)
-TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) end)
-
 -- ==========================================
--- 🧠 Core Loop: Global Live Scanner
+-- 🧠 Core Loop & AI Logic
 -- ==========================================
 local function getLiveScannedMonster()
     local nearest, minDist = nil, math.huge
@@ -486,10 +493,7 @@ local function getLiveScannedMonster()
                         
                         if isMatch then
                             local dist = (hrp.Position - mobRoot.Position).Magnitude
-                            if dist < minDist then
-                                minDist = dist
-                                nearest = obj
-                            end
+                            if dist < minDist then minDist = dist; nearest = obj end
                         end
                     end
                 end
@@ -500,37 +504,30 @@ local function getLiveScannedMonster()
 
     local entities = workspace:FindFirstChild("Entities")
     if entities then scanFolder(entities) end
-    
     if not nearest then
         for _, child in ipairs(workspace:GetChildren()) do
             if child.Name ~= "Terrain" and child.Name ~= "Camera" then scanFolder(child) end
         end
     end
-
     return nearest
 end
 
 local function getHeistTarget()
     local entities = workspace:FindFirstChild("Entities")
     if not entities then return nil end
-    local gamblers = {}
-    local boss = nil
+    local gamblers, boss = {}, nil
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     
     for _, obj in ipairs(entities:GetChildren()) do
         if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
             local name = string.lower(obj.Name)
-            if string.match(name, "bankrupt gamblers") then
-                table.insert(gamblers, obj)
-            elseif string.match(name, "golden statue") then
-                boss = obj
-            end
+            if string.match(name, "bankrupt gamblers") then table.insert(gamblers, obj)
+            elseif string.match(name, "golden statue") then boss = obj end
         end
     end
     
     if #gamblers > 0 and myHrp then
-        local nearestGambler = nil
-        local minDist = math.huge
+        local nearestGambler, minDist = nil, math.huge
         for _, g in ipairs(gamblers) do
             local gRoot = g:FindFirstChild("HumanoidRootPart") or g:FindFirstChild("Torso")
             if gRoot then
@@ -540,9 +537,7 @@ local function getHeistTarget()
         end
         if nearestGambler then return nearestGambler end
     end
-    
-    if boss then return boss end
-    return nil
+    return boss
 end
 
 local function getRewardMachine()
@@ -567,12 +562,65 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
+    local cam = workspace.CurrentCamera
     
     if hum and hum.Health > 0 then
         hum.WalkSpeed = Settings.WalkSpeed
     end
 
-    if hrp then
+    if hrp and hum then
+        -- 🔥 ระบบจัดการฟิสิกส์การบิน (Fly Physics)
+        if Settings.FlyMode then
+            local flyBV = hrp:FindFirstChild("FlyBV")
+            local flyBG = hrp:FindFirstChild("FlyBG")
+            
+            if not flyBV then
+                flyBV = Instance.new("BodyVelocity")
+                flyBV.Name = "FlyBV"
+                flyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                flyBV.Parent = hrp
+            end
+            if not flyBG then
+                flyBG = Instance.new("BodyGyro")
+                flyBG.Name = "FlyBG"
+                flyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                flyBG.P = 10000
+                flyBG.Parent = hrp
+            end
+            
+            hum.PlatformStand = true -- ป้องกันขากระตุกตอนบิน
+            flyBG.CFrame = cam.CFrame -- ให้ตัวละครหันหน้าตามมุมกล้อง
+            
+            local dir = Vector3.new(0,0,0)
+            
+            -- รองรับปุ่มกด PC (WASD)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+            
+            -- รองรับจอยสติ๊กมือถือ (Thumbstick)
+            if dir.Magnitude == 0 and hum.MoveDirection.Magnitude > 0 then
+                -- แปลงทิศทางการเดินของจอยสติ๊ก ให้เชิดหน้าขึ้น/ลง ตามมุมกล้อง 3D
+                local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
+                dir = cam.CFrame:VectorToWorldSpace(localMove)
+            end
+            
+            if dir.Magnitude > 0 then
+                flyBV.Velocity = dir.Unit * Settings.FlySpeed
+            else
+                flyBV.Velocity = Vector3.new(0, 0, 0)
+            end
+        else
+            -- เคลียร์ระบบบินทิ้งเมื่อกดปิด
+            local flyBV = hrp:FindFirstChild("FlyBV")
+            local flyBG = hrp:FindFirstChild("FlyBG")
+            if flyBV then flyBV:Destroy() end
+            if flyBG then flyBG:Destroy() end
+            if hum.PlatformStand then hum.PlatformStand = false end
+        end
+
+        -- ระบบชน (Collision) สำหรับ Auto Farm
         if Settings.GoldenHeist or Settings.AutoFarm then
             for _, part in ipairs(char:GetChildren()) do 
                 if part:IsA("BasePart") then part.CanCollide = false end 
@@ -583,6 +631,7 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function()
             end
         end
 
+        -- Logic Auto Farm
         if Settings.GoldenHeist then
             local machinePart, prompt = getRewardMachine()
             if machinePart and prompt then
