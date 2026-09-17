@@ -8,18 +8,17 @@ local LocalPlayer = Players.LocalPlayer
 
 getgenv().ToggleUpdates = {}
 getgenv().IsAttacking = false 
-getgenv().IsBuffing = false -- 🔥 ป้องกันการวาร์ปตอนกำลังร่ายบัพ
-getgenv().JustRespawned = true -- 🔥 ดักเช็คฮาคิ
+getgenv().IsBuffing = false 
+getgenv().JustRespawned = true 
 
 LocalPlayer.CharacterAdded:Connect(function() getgenv().JustRespawned = true end)
 
 -- ==========================================
--- 💾 ระบบบันทึกและโหลดการตั้งค่า (Auto-Save/Load)
+-- 💾 ระบบบันทึกและโหลดการตั้งค่า
 -- ==========================================
 local ConfigName = "PremiumRaid_Config.json"
 local Settings = {
-    AutoFarm = false, AutoClick = false, GoldenHeist = false, AutoDodge = true,
-    AutoBuff = true, -- 🔥 ระบบออโต้บัพ
+    AutoFarm = false, AutoClick = false, GoldenHeist = false, AutoBuff = true, 
     TargetMob = "None", TargetIsland = "None", Distance = 4, ScanRadius = 2500,
     EnableSpeedMode = false, SpeedMultiplier = 150, SpeedKeybind = nil,
     EnableFlyMode = false, FlySpeed = 300, FlyKeybind = nil
@@ -31,8 +30,7 @@ local function LoadSettings()
             local decoded = HttpService:JSONDecode(readfile(ConfigName))
             for k, v in pairs(decoded) do
                 if type(v) == "string" and string.match(v, "^Enum%.KeyCode%.") then
-                    local keyName = string.gsub(v, "Enum%.KeyCode%.", "")
-                    Settings[k] = Enum.KeyCode[keyName]
+                    Settings[k] = Enum.KeyCode[string.gsub(v, "Enum%.KeyCode%.", "")]
                 else Settings[k] = v end
             end
         end)
@@ -53,9 +51,9 @@ local function SaveSettings()
 end
 
 -- ==========================================
--- 🪙 1. สร้าง Tracker Golden Chips (ซ้ายจอ)
+-- 🪙 1. Tracker Golden Chips
 -- ==========================================
-local TRK_Name = "GoldenChipsTracker_V15"
+local TRK_Name = "GoldenChipsTracker_V18"
 local pUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if pUI:FindFirstChild(TRK_Name) then pUI[TRK_Name]:Destroy() end
 
@@ -65,19 +63,18 @@ local TrkCorner = Instance.new("UICorner"); TrkCorner.CornerRadius = UDim.new(0,
 local TrkStroke = Instance.new("UIStroke"); TrkStroke.Color = Color3.fromRGB(255, 215, 0); TrkStroke.Thickness = 1.5; TrkStroke.Parent = TrkFrame
 local TrkLabel = Instance.new("TextLabel"); TrkLabel.Size = UDim2.new(1, 0, 1, 0); TrkLabel.BackgroundTransparency = 1; TrkLabel.Text = "🪙 Golden Chips: Loading..."; TrkLabel.TextColor3 = Color3.fromRGB(255, 220, 50); TrkLabel.Font = Enum.Font.GothamBold; TrkLabel.TextSize = 15; TrkLabel.Parent = TrkFrame
 
-local function formatNumber(n) return tostring(n):reverse():gsub("%d%d%d", "%1,"):reverse():gsub("^,", "") end
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
             local stats = LocalPlayer:FindFirstChild("Stats")
             local chips = stats and stats:FindFirstChild("Golden Chips")
-            if chips then TrkLabel.Text = "🪙 Golden Chips: " .. formatNumber(chips.Value) else TrkLabel.Text = "🪙 Golden Chips: 0" end
+            if chips then TrkLabel.Text = "🪙 Golden Chips: " .. tostring(chips.Value):reverse():gsub("%d%d%d", "%1,"):reverse():gsub("^,", "") else TrkLabel.Text = "🪙 Golden Chips: 0" end
         end)
     end
 end)
 
 -- ==========================================
--- 🎮 ระบบรับปุ่มลัด (Keybind Listener)
+-- 🎮 ระบบรับปุ่มลัด
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -91,9 +88,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ==========================================
--- 🎨 2. สร้าง Main GUI
+-- 🎨 2. Main GUI 
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V15"
+local UI_Name = "PremiumRaidGUI_V18"
 if pUI:FindFirstChild(UI_Name) then pUI[UI_Name]:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui"); ScreenGui.Name = UI_Name; ScreenGui.Parent = pUI
@@ -103,7 +100,7 @@ local MainCorner = Instance.new("UICorner"); MainCorner.CornerRadius = UDim.new(
 local TopBar = Instance.new("Frame"); TopBar.Size = UDim2.new(1, 0, 0, 45); TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TopBar.Parent = MainFrame
 local TopCorner = Instance.new("UICorner"); TopCorner.CornerRadius = UDim.new(0, 10); TopCorner.Parent = TopBar
 
-local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(0, 450, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0); Title.BackgroundTransparency = 1; Title.Text = "Premium Raid Auto V15 (+Auto Buff & Haki)"; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = TopBar
+local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(0, 450, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0); Title.BackgroundTransparency = 1; Title.Text = "Premium Raid Auto V18 (No Dodge + Fast Heist)"; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = TopBar
 
 local MinBtn = Instance.new("TextButton"); MinBtn.Size = UDim2.new(0, 40, 0, 30); MinBtn.Position = UDim2.new(1, -95, 0, 7); MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 18; MinBtn.Parent = TopBar
 local MinCorner = Instance.new("UICorner"); MinCorner.CornerRadius = UDim.new(0, 6); MinCorner.Parent = MinBtn
@@ -151,13 +148,9 @@ TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) 
 
 MinBtn.MouseButton1Click:Connect(function()
     local isMin = (MinBtn.Text == "-"); Sidebar.Visible = not isMin; ContentArea.Visible = not isMin
-    MainFrame.Size = isMin and UDim2.new(0, 750, 0, 45) or UDim2.new(0, 750, 0, 500)
-    MinBtn.Text = isMin and "+" or "-"
+    MainFrame.Size = isMin and UDim2.new(0, 750, 0, 45) or UDim2.new(0, 750, 0, 500); MinBtn.Text = isMin and "+" or "-"
 end)
 
--- ==========================================
--- 🛠️ UI Builder Functions
--- ==========================================
 local function CreateSectionLabel(parent, text)
     local Frame = Instance.new("Frame"); Frame.Size = UDim2.new(1, -20, 0, 35); Frame.BackgroundTransparency = 1; Frame.Parent = parent
     local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, 0, 1, 0); Label.Position = UDim2.new(0, 5, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(255, 60, 60); Label.Font = Enum.Font.GothamBold; Label.TextSize = 15; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = Frame
@@ -234,6 +227,11 @@ local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
     end)
 end
 
+local function CreateButton(parent, text, callback)
+    local Btn = Instance.new("TextButton"); Btn.Size = UDim2.new(1, -20, 0, 50); Btn.BackgroundColor3 = Color3.fromRGB(50, 100, 200); Btn.Text = text; Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 16; Btn.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Btn
+    Btn.MouseButton1Click:Connect(callback)
+end
+
 -- ==========================================
 -- 📝 หน้าต่าง UI - จัดวาง Layout
 -- ==========================================
@@ -273,10 +271,39 @@ CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 1000)
 
 CreateSectionLabel(PageHeist, "Raid Modes")
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
-CreateToggle(PageHeist, "🔥 Auto Dodge (หลบเลเซอร์)", "AutoDodge")
+local HeistInfo = Instance.new("TextLabel"); HeistInfo.Size = UDim2.new(1, -20, 0, 80); HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35); HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150); HeistInfo.Font = Enum.Font.Gotham; HeistInfo.TextSize = 14; HeistInfo.TextWrapped = true; HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ/Raid (ลบระบบหลบทิ้ง):\n1. โฟกัสตี Bankrupt Gamblers\n2. สับบอส (Golden Statue) ตัวสุดท้าย"; HeistInfo.Parent = PageHeist; local HCorner = Instance.new("UICorner"); HCorner.CornerRadius = UDim.new(0, 8); HCorner.Parent = HeistInfo
+
+CreateLiveDropdown(PageTP, "Select Island", "TargetIsland", function()
+    local isls = {"None"}
+    local map = workspace:FindFirstChild("Map"); local islandsFolder = map and map:FindFirstChild("Islands")
+    if islandsFolder then
+        for i, island in ipairs(islandsFolder:GetChildren()) do
+            local name = island.Name; if name == "" or name == " " then name = "Island " .. tostring(i) end
+            table.insert(isls, name)
+        end
+    end
+    return isls
+end)
+CreateButton(PageTP, "🚀 Teleport to Island", function()
+    local map = workspace:FindFirstChild("Map"); local islandsFolder = map and map:FindFirstChild("Islands")
+    if not islandsFolder or Settings.TargetIsland == "None" then return end
+    local targetIsland
+    for i, island in ipairs(islandsFolder:GetChildren()) do
+        local name = island.Name; if name == "" or name == " " then name = "Island " .. tostring(i) end
+        if name == Settings.TargetIsland then targetIsland = island; break end
+    end
+    if targetIsland then
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            local spawner = targetIsland:FindFirstChild("Spawner", true)
+            if spawner and spawner:IsA("BasePart") then hrp.CFrame = spawner.CFrame * CFrame.new(0, 5, 0) else hrp.CFrame = targetIsland:GetPivot() * CFrame.new(0, 20, 0) end
+        end
+    end
+end)
 
 -- ==========================================
--- 🛡️ ระบบ AUTO BUFF & SMART HAKI (หัวใจหลักของ V15)
+-- 🛡️ ระบบ AUTO BUFF & SMART HAKI
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -285,58 +312,40 @@ task.spawn(function()
             local hum = char and char:FindFirstChild("Humanoid")
             if char and hum and hum.Health > 0 then
                 local myName = LocalPlayer.Name
-                -- รองรับกรณีเปลี่ยนชื่อโมเดลเป็นชื่อผู้เล่นหรือชื่อ Miyuume
                 local entity = workspace:FindFirstChild("Entities") and (workspace.Entities:FindFirstChild(myName) or workspace.Entities:FindFirstChild("Miyuume"))
-                
                 if entity then
                     local boosts = entity:FindFirstChild("Boosts")
-                    
                     local b1 = entity:FindFirstChild("Godly Awakening")
                     local b2 = entity:FindFirstChild("SubZero")
                     local b3 = entity:FindFirstChild("BerserkArmorMode")
                     local b4 = boosts and boosts:FindFirstChild("SlimeMode")
                     
-                    -- ถ้ามีบัพใดบัพหนึ่งหายไป แปลว่าเพิ่งตาย หรือลืมกดบัพ
                     if not (b1 and b2 and b3 and b4) then
-                        getgenv().IsBuffing = true -- หยุดระบบออโต้ฟาร์มชั่วคราว
+                        getgenv().IsBuffing = true 
                         local hrp = char:FindFirstChild("HumanoidRootPart")
                         if hrp then hrp.Velocity = Vector3.new(0,0,0) end
-                        
-                        -- ฟังก์ชันสลับอาวุธแล้วกดคีย์
                         local function cast(obj, wName, keyStr)
                             if not obj then
                                 local tool = LocalPlayer.Backpack:FindFirstChild(wName) or char:FindFirstChild(wName)
                                 if tool then
-                                    hum:EquipTool(tool)
-                                    task.wait(0.6) -- รอแอนิเมชันหยิบอาวุธ
-                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[keyStr], false, game)
-                                    task.wait(0.1)
-                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[keyStr], false, game)
-                                    task.wait(1.5) -- รอระบบร่ายบัพเสร็จ
+                                    hum:EquipTool(tool); task.wait(0.6)
+                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[keyStr], false, game); task.wait(0.1); VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[keyStr], false, game); task.wait(1.5)
                                 end
                             end
                         end
-                        
-                        -- ไล่กดทีละบัพ
                         cast(b1, "God of Stands", "U")
                         cast(b2, "Frost Bazooka", "F")
                         cast(b3, "Dragon Slayer", "U")
                         cast(b4, "Reincarnated Slime", "U")
                         
-                        -- หยิบอาวุธหลักมาถือรอไว้
                         local mainWep = LocalPlayer.Backpack:FindFirstChild("God of Stands") or char:FindFirstChild("God of Stands")
                         if mainWep then hum:EquipTool(mainWep); task.wait(0.5) end
-                        
                         getgenv().IsBuffing = false
                     end
                     
-                    -- 🔥 ระบบ Smart Haki: กด J แค่ครั้งเดียวตอนเพิ่งเกิด!
                     if getgenv().JustRespawned and not getgenv().IsBuffing then
                         getgenv().JustRespawned = false
-                        task.wait(0.5)
-                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.J, false, game)
-                        task.wait(0.1)
-                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.J, false, game)
+                        task.wait(0.5); VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.J, false, game); task.wait(0.1); VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.J, false, game)
                     end
                 end
             end
@@ -345,26 +354,8 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 🧠 Core Loop & AI Logic
+-- 🧠 Core Loop & AI Logic (ลบ Auto Dodge ทิ้งแล้ว!)
 -- ==========================================
-local function checkLaserDanger()
-    if not Settings.AutoDodge then return false end
-    local raidMap = workspace:FindFirstChild("Raid Map")
-    if raidMap then
-        local laserFolder = raidMap:FindFirstChild("LaserDamage")
-        if laserFolder then
-            for _, obj in ipairs(laserFolder:GetDescendants()) do
-                if obj.Name == "Collidable" then
-                    if obj:IsA("BoolValue") and obj.Value == true then return true end
-                    if obj:IsA("BasePart") and obj.CanCollide == true then return true end
-                end
-                if obj:IsA("BasePart") and obj.CanCollide then return true end
-            end
-        end
-    end
-    return false
-end
-
 local function getRaidHeistTarget()
     local entities = workspace:FindFirstChild("Entities"); if not entities then return nil end
     local gamblers, boss = {}, nil
@@ -420,7 +411,6 @@ end
 
 if getgenv().FarmLoop then getgenv().FarmLoop:Disconnect() end
 getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
-    -- 🔥 ถ้ากำลังร่ายบัพอยู่ ให้ข้ามลูปตีมอนไปเลย ป้องกันตัวละครวาร์ปมั่ว
     if getgenv().IsBuffing then return end
     
     local char = LocalPlayer.Character
@@ -458,11 +448,6 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
             for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
         else
             for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end end
-        end
-
-        if checkLaserDanger() and (Settings.GoldenHeist or Settings.AutoFarm) then
-            hrp.CFrame = CFrame.new(hrp.Position.X, 300, hrp.Position.Z)
-            return 
         end
 
         if Settings.GoldenHeist then
