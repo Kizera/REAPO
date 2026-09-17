@@ -5,28 +5,42 @@ local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-getgenv().ToggleUpdates = {} -- ระบบซิงค์ปุ่ม UI กับ Keybind
+getgenv().ToggleUpdates = {}
 
 -- ==========================================
 -- ⚙️ การตั้งค่าระบบ
 -- ==========================================
 local Settings = {
-    AutoFarm = false,
-    AutoClick = false,
-    GoldenHeist = false,
-    TargetMob = "None",
-    TargetIsland = "None",
-    Distance = 4,
-    
-    -- โหมด Player
-    EnableSpeedMode = false,
-    SpeedMultiplier = 50,
-    SpeedKeybind = nil, -- เก็บปุ่มลัด Speed
-    
-    EnableFlyMode = false,
-    FlySpeed = 200,
-    FlyKeybind = nil    -- เก็บปุ่มลัด Fly
+    AutoFarm = false, AutoClick = false, GoldenHeist = false,
+    AutoDodge = true, -- 🔥 ระบบหลบเลเซอร์อัตโนมัติ
+    TargetMob = "None", TargetIsland = "None", Distance = 4, ScanRadius = 2500,
+    EnableSpeedMode = false, SpeedMultiplier = 150, SpeedKeybind = nil,
+    EnableFlyMode = false, FlySpeed = 300, FlyKeybind = nil
 }
+
+-- ==========================================
+-- 🪙 1. สร้าง Tracker Golden Chips (ซ้ายจอ)
+-- ==========================================
+local TRK_Name = "GoldenChipsTracker_V11"
+local pUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
+if pUI:FindFirstChild(TRK_Name) then pUI[TRK_Name]:Destroy() end
+
+local TrkGui = Instance.new("ScreenGui"); TrkGui.Name = TRK_Name; TrkGui.Parent = pUI
+local TrkFrame = Instance.new("Frame"); TrkFrame.Size = UDim2.new(0, 220, 0, 45); TrkFrame.Position = UDim2.new(0, 15, 0.5, 0); TrkFrame.AnchorPoint = Vector2.new(0, 0.5); TrkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); TrkFrame.BorderSizePixel = 0; TrkFrame.Active = true; TrkFrame.Draggable = true; TrkFrame.Parent = TrkGui
+local TrkCorner = Instance.new("UICorner"); TrkCorner.CornerRadius = UDim.new(0, 8); TrkCorner.Parent = TrkFrame
+local TrkStroke = Instance.new("UIStroke"); TrkStroke.Color = Color3.fromRGB(255, 215, 0); TrkStroke.Thickness = 1.5; TrkStroke.Parent = TrkFrame
+local TrkLabel = Instance.new("TextLabel"); TrkLabel.Size = UDim2.new(1, 0, 1, 0); TrkLabel.BackgroundTransparency = 1; TrkLabel.Text = "🪙 Golden Chips: Loading..."; TrkLabel.TextColor3 = Color3.fromRGB(255, 220, 50); TrkLabel.Font = Enum.Font.GothamBold; TrkLabel.TextSize = 15; TrkLabel.Parent = TrkFrame
+
+local function formatNumber(n) return tostring(n):reverse():gsub("%d%d%d", "%1,"):reverse():gsub("^,", "") end
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local stats = LocalPlayer:FindFirstChild("Stats")
+            local chips = stats and stats:FindFirstChild("Golden Chips")
+            if chips then TrkLabel.Text = "🪙 Golden Chips: " .. formatNumber(chips.Value) else TrkLabel.Text = "🪙 Golden Chips: 0" end
+        end)
+    end
+end)
 
 -- ==========================================
 -- 🎮 ระบบรับปุ่มลัด (Keybind Listener)
@@ -35,84 +49,39 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
         if Settings.SpeedKeybind and input.KeyCode == Settings.SpeedKeybind then
-            Settings.EnableSpeedMode = not Settings.EnableSpeedMode
-            if getgenv().ToggleUpdates["EnableSpeedMode"] then getgenv().ToggleUpdates["EnableSpeedMode"](Settings.EnableSpeedMode) end
+            Settings.EnableSpeedMode = not Settings.EnableSpeedMode; if getgenv().ToggleUpdates["EnableSpeedMode"] then getgenv().ToggleUpdates["EnableSpeedMode"](Settings.EnableSpeedMode) end
         elseif Settings.FlyKeybind and input.KeyCode == Settings.FlyKeybind then
-            Settings.EnableFlyMode = not Settings.EnableFlyMode
-            if getgenv().ToggleUpdates["EnableFlyMode"] then getgenv().ToggleUpdates["EnableFlyMode"](Settings.EnableFlyMode) end
+            Settings.EnableFlyMode = not Settings.EnableFlyMode; if getgenv().ToggleUpdates["EnableFlyMode"] then getgenv().ToggleUpdates["EnableFlyMode"](Settings.EnableFlyMode) end
         end
     end
 end)
 
 -- ==========================================
--- 🎨 สร้าง Premium GUI V9
+-- 🎨 2. สร้าง Main GUI V11
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V9"
-local parentUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
-if parentUI:FindFirstChild(UI_Name) then parentUI[UI_Name]:Destroy() end
+local UI_Name = "PremiumRaidGUI_V11"
+if pUI:FindFirstChild(UI_Name) then pUI[UI_Name]:Destroy() end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = UI_Name
-ScreenGui.Parent = parentUI
+local ScreenGui = Instance.new("ScreenGui"); ScreenGui.Name = UI_Name; ScreenGui.Parent = pUI
+local MainFrame = Instance.new("Frame"); MainFrame.Size = UDim2.new(0, 750, 0, 500); MainFrame.Position = UDim2.new(0.5, -375, 0.5, -250); MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); MainFrame.BorderSizePixel = 0; MainFrame.Active = true; MainFrame.Draggable = true; MainFrame.Parent = ScreenGui
+local MainCorner = Instance.new("UICorner"); MainCorner.CornerRadius = UDim.new(0, 10); MainCorner.Parent = MainFrame
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 750, 0, 500) 
-MainFrame.Position = UDim2.new(0.5, -375, 0.5, -250)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-local MainCorner = Instance.new("UICorner") MainCorner.CornerRadius = UDim.new(0, 10) MainCorner.Parent = MainFrame
+local TopBar = Instance.new("Frame"); TopBar.Size = UDim2.new(1, 0, 0, 45); TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TopBar.Parent = MainFrame
+local TopCorner = Instance.new("UICorner"); TopCorner.CornerRadius = UDim.new(0, 10); TopCorner.Parent = TopBar
 
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
-local TopCorner = Instance.new("UICorner") TopCorner.CornerRadius = UDim.new(0, 10) TopCorner.Parent = TopBar
+local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(0, 450, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0); Title.BackgroundTransparency = 1; Title.Text = "Premium Raid Auto V11 (Dodge + Heist Fix)"; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = TopBar
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 400, 1, 0)
-Title.Position = UDim2.new(0, 20, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Premium Raid Auto V9 (+Keybinds)"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
+local MinBtn = Instance.new("TextButton"); MinBtn.Size = UDim2.new(0, 40, 0, 30); MinBtn.Position = UDim2.new(1, -95, 0, 7); MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 18; MinBtn.Parent = TopBar
+local MinCorner = Instance.new("UICorner"); MinCorner.CornerRadius = UDim.new(0, 6); MinCorner.Parent = MinBtn
 
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 40, 0, 30)
-MinBtn.Position = UDim2.new(1, -95, 0, 7)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MinBtn.Text = "-"
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 18
-MinBtn.Parent = TopBar
-local MinCorner = Instance.new("UICorner") MinCorner.CornerRadius = UDim.new(0, 6) MinCorner.Parent = MinBtn
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 40, 0, 30)
-CloseBtn.Position = UDim2.new(1, -50, 0, 7)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
-CloseBtn.Parent = TopBar
-local CloseCorner = Instance.new("UICorner") CloseCorner.CornerRadius = UDim.new(0, 6) CloseCorner.Parent = CloseBtn
+local CloseBtn = Instance.new("TextButton"); CloseBtn.Size = UDim2.new(0, 40, 0, 30); CloseBtn.Position = UDim2.new(1, -50, 0, 7); CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18; CloseBtn.Parent = TopBar
+local CloseCorner = Instance.new("UICorner"); CloseCorner.CornerRadius = UDim.new(0, 6); CloseCorner.Parent = CloseBtn
 
 CloseBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local fbv = hrp:FindFirstChild("FlyBV") if fbv then fbv:Destroy() end
-            local fbg = hrp:FindFirstChild("FlyBG") if fbg then fbg:Destroy() end
-        end
+        if hrp then local fbv = hrp:FindFirstChild("FlyBV") if fbv then fbv:Destroy() end local fbg = hrp:FindFirstChild("FlyBG") if fbg then fbg:Destroy() end end
         for _, p in ipairs(char:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = true end end
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.WalkSpeed = 16 hum.PlatformStand = false end
@@ -120,67 +89,24 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 160, 1, -45)
-Sidebar.Position = UDim2.new(0, 0, 0, 45)
-Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = MainFrame
-
+local Sidebar = Instance.new("Frame"); Sidebar.Size = UDim2.new(0, 160, 1, -45); Sidebar.Position = UDim2.new(0, 0, 0, 45); Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Sidebar.Parent = MainFrame
 local function createTabButton(text, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 45)
-    btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundTransparency = 1
-    btn.Text = "  ◇ " .. text
-    btn.TextColor3 = Color3.fromRGB(150, 150, 150)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = Sidebar
-    return btn
+    local btn = Instance.new("TextButton"); btn.Size = UDim2.new(1, 0, 0, 45); btn.Position = UDim2.new(0, 0, 0, yPos); btn.BackgroundTransparency = 1; btn.Text = "  ◇ " .. text; btn.TextColor3 = Color3.fromRGB(150, 150, 150); btn.Font = Enum.Font.GothamBold; btn.TextSize = 16; btn.TextXAlignment = Enum.TextXAlignment.Left; btn.Parent = Sidebar; return btn
 end
 
-local TabMain = createTabButton("Main", 0)
-local TabHeist = createTabButton("ดันทองคำ", 45)
-local TabPlayer = createTabButton("Player", 90)
-local TabTeleport = createTabButton("Teleport", 135)
+local TabMain = createTabButton("Main", 0); local TabHeist = createTabButton("ดันทองคำ/Raid", 45); local TabPlayer = createTabButton("Player", 90); local TabTeleport = createTabButton("Teleport", 135)
 TabMain.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -170, 1, -55)
-ContentArea.Position = UDim2.new(0, 165, 0, 50)
-ContentArea.BackgroundTransparency = 1
-ContentArea.Parent = MainFrame
-
+local ContentArea = Instance.new("Frame"); ContentArea.Size = UDim2.new(1, -170, 1, -55); ContentArea.Position = UDim2.new(0, 165, 0, 50); ContentArea.BackgroundTransparency = 1; ContentArea.Parent = MainFrame
 local function createPage()
-    local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.BorderSizePixel = 0
-    page.ScrollBarThickness = 6
-    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    page.Parent = ContentArea
-    local list = Instance.new("UIListLayout") list.Padding = UDim.new(0, 8) list.Parent = page
-    return page
+    local page = Instance.new("ScrollingFrame"); page.Size = UDim2.new(1, 0, 1, 0); page.BackgroundTransparency = 1; page.BorderSizePixel = 0; page.ScrollBarThickness = 6; page.AutomaticCanvasSize = Enum.AutomaticSize.Y; page.Parent = ContentArea
+    local list = Instance.new("UIListLayout"); list.Padding = UDim.new(0, 8); list.Parent = page; return page
 end
 
-local PageMain = createPage()
-local PageHeist = createPage(); PageHeist.Visible = false
-local PagePlayer = createPage(); PagePlayer.Visible = false
-local PageTP = createPage(); PageTP.Visible = false
-
+local PageMain = createPage(); local PageHeist = createPage(); PageHeist.Visible = false; local PagePlayer = createPage(); PagePlayer.Visible = false; local PageTP = createPage(); PageTP.Visible = false
 local function switchTab(activePage, activeBtn)
-    PageMain.Visible = (activePage == PageMain)
-    PageHeist.Visible = (activePage == PageHeist)
-    PagePlayer.Visible = (activePage == PagePlayer)
-    PageTP.Visible = (activePage == PageTP)
-    
-    TabMain.TextColor3 = Color3.fromRGB(150, 150, 150)
-    TabHeist.TextColor3 = Color3.fromRGB(150, 150, 150)
-    TabPlayer.TextColor3 = Color3.fromRGB(150, 150, 150)
-    TabTeleport.TextColor3 = Color3.fromRGB(150, 150, 150)
+    PageMain.Visible = (activePage == PageMain); PageHeist.Visible = (activePage == PageHeist); PagePlayer.Visible = (activePage == PagePlayer); PageTP.Visible = (activePage == PageTP)
+    TabMain.TextColor3 = Color3.fromRGB(150, 150, 150); TabHeist.TextColor3 = Color3.fromRGB(150, 150, 150); TabPlayer.TextColor3 = Color3.fromRGB(150, 150, 150); TabTeleport.TextColor3 = Color3.fromRGB(150, 150, 150)
     activeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
@@ -189,11 +115,8 @@ TabHeist.MouseButton1Click:Connect(function() switchTab(PageHeist, TabHeist) end
 TabPlayer.MouseButton1Click:Connect(function() switchTab(PagePlayer, TabPlayer) end)
 TabTeleport.MouseButton1Click:Connect(function() switchTab(PageTP, TabTeleport) end)
 
-local isMin = false
 MinBtn.MouseButton1Click:Connect(function()
-    isMin = not isMin
-    Sidebar.Visible = not isMin
-    ContentArea.Visible = not isMin
+    local isMin = (MinBtn.Text == "-"); Sidebar.Visible = not isMin; ContentArea.Visible = not isMin
     MainFrame.Size = isMin and UDim2.new(0, 750, 0, 45) or UDim2.new(0, 750, 0, 500)
     MinBtn.Text = isMin and "+" or "-"
 end)
@@ -202,213 +125,78 @@ end)
 -- 🛠️ UI Builder Functions
 -- ==========================================
 local function CreateSectionLabel(parent, text)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -20, 0, 35)
-    Frame.BackgroundTransparency = 1
-    Frame.Parent = parent
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, 0, 1, 0)
-    Label.Position = UDim2.new(0, 5, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(255, 60, 60)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 15
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-    
-    local Line = Instance.new("Frame")
-    Line.Size = UDim2.new(1, -5, 0, 1)
-    Line.Position = UDim2.new(0, 5, 1, -5)
-    Line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Line.BorderSizePixel = 0
-    Line.Parent = Frame
+    local Frame = Instance.new("Frame"); Frame.Size = UDim2.new(1, -20, 0, 35); Frame.BackgroundTransparency = 1; Frame.Parent = parent
+    local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, 0, 1, 0); Label.Position = UDim2.new(0, 5, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(255, 60, 60); Label.Font = Enum.Font.GothamBold; Label.TextSize = 15; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = Frame
+    local Line = Instance.new("Frame"); Line.Size = UDim2.new(1, -5, 0, 1); Line.Position = UDim2.new(0, 5, 1, -5); Line.BackgroundColor3 = Color3.fromRGB(50, 50, 50); Line.BorderSizePixel = 0; Line.Parent = Frame
 end
 
 local function CreateToggle(parent, text, flag)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -20, 0, 50)
-    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Frame.Parent = parent
-    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Frame
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -70, 1, 0)
-    Label.Position = UDim2.new(0, 15, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 16
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local CheckboxBg = Instance.new("TextButton")
-    CheckboxBg.Size = UDim2.new(0, 30, 0, 30)
-    CheckboxBg.Position = UDim2.new(1, -45, 0.5, -15)
-    CheckboxBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    CheckboxBg.Text = ""
-    CheckboxBg.Parent = Frame
-    local CCorner = Instance.new("UICorner") CCorner.CornerRadius = UDim.new(0, 6) CCorner.Parent = CheckboxBg
-
-    local CheckboxFill = Instance.new("Frame")
-    CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
-    CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
-    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    CheckboxFill.Visible = Settings[flag]
-    CheckboxFill.Parent = CheckboxBg
-    local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
-
-    getgenv().ToggleUpdates[flag] = function(state)
-        CheckboxFill.Visible = state
-    end
-
-    CheckboxBg.MouseButton1Click:Connect(function()
-        Settings[flag] = not Settings[flag]
-        getgenv().ToggleUpdates[flag](Settings[flag])
-    end)
+    local Frame = Instance.new("Frame"); Frame.Size = UDim2.new(1, -20, 0, 50); Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Frame.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Frame
+    local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, -70, 1, 0); Label.Position = UDim2.new(0, 15, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(220, 220, 220); Label.Font = Enum.Font.GothamBold; Label.TextSize = 16; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = Frame
+    local CheckboxBg = Instance.new("TextButton"); CheckboxBg.Size = UDim2.new(0, 30, 0, 30); CheckboxBg.Position = UDim2.new(1, -45, 0.5, -15); CheckboxBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50); CheckboxBg.Text = ""; CheckboxBg.Parent = Frame; local CCorner = Instance.new("UICorner"); CCorner.CornerRadius = UDim.new(0, 6); CCorner.Parent = CheckboxBg
+    local CheckboxFill = Instance.new("Frame"); CheckboxFill.Size = UDim2.new(1, -6, 1, -6); CheckboxFill.Position = UDim2.new(0, 3, 0, 3); CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60); CheckboxFill.Visible = Settings[flag]; CheckboxFill.Parent = CheckboxBg; local FCorner = Instance.new("UICorner"); FCorner.CornerRadius = UDim.new(0, 4); FCorner.Parent = CheckboxFill
+    CheckboxBg.MouseButton1Click:Connect(function() Settings[flag] = not Settings[flag]; CheckboxFill.Visible = Settings[flag] end)
 end
 
--- 🔥 สร้าง Toggle พร้อมปุ่มตั้ง Keybind
 local function CreateToggleWithKeybind(parent, text, flag, keybindFlag)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -20, 0, 50)
-    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Frame.Parent = parent
-    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Frame
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -130, 1, 0)
-    Label.Position = UDim2.new(0, 15, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 16
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    -- ปุ่มตั้ง Keybind
-    local KeyBtn = Instance.new("TextButton")
-    KeyBtn.Size = UDim2.new(0, 60, 0, 30)
-    KeyBtn.Position = UDim2.new(1, -115, 0.5, -15)
-    KeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    KeyBtn.Text = Settings[keybindFlag] and Settings[keybindFlag].Name or "NONE"
-    KeyBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
-    KeyBtn.Font = Enum.Font.GothamBold
-    KeyBtn.TextSize = 12
-    KeyBtn.Parent = Frame
-    local KCorner = Instance.new("UICorner") KCorner.CornerRadius = UDim.new(0, 6) KCorner.Parent = KeyBtn
-
+    local Frame = Instance.new("Frame"); Frame.Size = UDim2.new(1, -20, 0, 50); Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Frame.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Frame
+    local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, -130, 1, 0); Label.Position = UDim2.new(0, 15, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(220, 220, 220); Label.Font = Enum.Font.GothamBold; Label.TextSize = 16; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = Frame
+    local KeyBtn = Instance.new("TextButton"); KeyBtn.Size = UDim2.new(0, 60, 0, 30); KeyBtn.Position = UDim2.new(1, -115, 0.5, -15); KeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70); KeyBtn.Text = Settings[keybindFlag] and Settings[keybindFlag].Name or "NONE"; KeyBtn.TextColor3 = Color3.fromRGB(200, 200, 255); KeyBtn.Font = Enum.Font.GothamBold; KeyBtn.TextSize = 12; KeyBtn.Parent = Frame; local KCorner = Instance.new("UICorner"); KCorner.CornerRadius = UDim.new(0, 6); KCorner.Parent = KeyBtn
     local isBinding = false
-    KeyBtn.MouseButton1Click:Connect(function()
-        isBinding = true
-        KeyBtn.Text = "..."
-    end)
-
+    KeyBtn.MouseButton1Click:Connect(function() isBinding = true; KeyBtn.Text = "..." end)
     UserInputService.InputBegan:Connect(function(input)
         if isBinding and input.UserInputType == Enum.UserInputType.Keyboard then
-            if input.KeyCode == Enum.KeyCode.Escape then
-                Settings[keybindFlag] = nil
-                KeyBtn.Text = "NONE"
-            else
-                Settings[keybindFlag] = input.KeyCode
-                KeyBtn.Text = input.KeyCode.Name
-            end
+            if input.KeyCode == Enum.KeyCode.Escape then Settings[keybindFlag] = nil; KeyBtn.Text = "NONE" else Settings[keybindFlag] = input.KeyCode; KeyBtn.Text = input.KeyCode.Name end
             isBinding = false
         end
     end)
-
-    local CheckboxBg = Instance.new("TextButton")
-    CheckboxBg.Size = UDim2.new(0, 30, 0, 30)
-    CheckboxBg.Position = UDim2.new(1, -45, 0.5, -15)
-    CheckboxBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    CheckboxBg.Text = ""
-    CheckboxBg.Parent = Frame
-    local CCorner = Instance.new("UICorner") CCorner.CornerRadius = UDim.new(0, 6) CCorner.Parent = CheckboxBg
-
-    local CheckboxFill = Instance.new("Frame")
-    CheckboxFill.Size = UDim2.new(1, -6, 1, -6)
-    CheckboxFill.Position = UDim2.new(0, 3, 0, 3)
-    CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    CheckboxFill.Visible = Settings[flag]
-    CheckboxFill.Parent = CheckboxBg
-    local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(0, 4) FCorner.Parent = CheckboxFill
-
-    getgenv().ToggleUpdates[flag] = function(state)
-        CheckboxFill.Visible = state
-    end
-
-    CheckboxBg.MouseButton1Click:Connect(function()
-        Settings[flag] = not Settings[flag]
-        getgenv().ToggleUpdates[flag](Settings[flag])
-    end)
+    local CheckboxBg = Instance.new("TextButton"); CheckboxBg.Size = UDim2.new(0, 30, 0, 30); CheckboxBg.Position = UDim2.new(1, -45, 0.5, -15); CheckboxBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50); CheckboxBg.Text = ""; CheckboxBg.Parent = Frame; local CCorner = Instance.new("UICorner"); CCorner.CornerRadius = UDim.new(0, 6); CCorner.Parent = CheckboxBg
+    local CheckboxFill = Instance.new("Frame"); CheckboxFill.Size = UDim2.new(1, -6, 1, -6); CheckboxFill.Position = UDim2.new(0, 3, 0, 3); CheckboxFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60); CheckboxFill.Visible = Settings[flag]; CheckboxFill.Parent = CheckboxBg; local FCorner = Instance.new("UICorner"); FCorner.CornerRadius = UDim.new(0, 4); FCorner.Parent = CheckboxFill
+    getgenv().ToggleUpdates[flag] = function(state) CheckboxFill.Visible = state end
+    CheckboxBg.MouseButton1Click:Connect(function() Settings[flag] = not Settings[flag]; getgenv().ToggleUpdates[flag](Settings[flag]) end)
 end
 
 local function CreateSlider(parent, text, flag, minVal, maxVal)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -20, 0, 70)
-    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Frame.Parent = parent
-    local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 8) Corner.Parent = Frame
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -30, 0, 30)
-    Label.Position = UDim2.new(0, 15, 0, 5)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 16
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Size = UDim2.new(0, 50, 0, 30)
-    ValueLabel.Position = UDim2.new(1, -65, 0, 5)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.Text = Settings[flag]
-    ValueLabel.TextColor3 = Color3.fromRGB(255, 60, 60)
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.TextSize = 16
-    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    ValueLabel.Parent = Frame
-
-    local SliderBg = Instance.new("Frame")
-    SliderBg.Size = UDim2.new(1, -30, 0, 10)
-    SliderBg.Position = UDim2.new(0, 15, 0, 45)
-    SliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-    SliderBg.Parent = Frame
-    local SCorner = Instance.new("UICorner") SCorner.CornerRadius = UDim.new(1, 0) SCorner.Parent = SliderBg
-
+    local Frame = Instance.new("Frame"); Frame.Size = UDim2.new(1, -20, 0, 70); Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Frame.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Frame
+    local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, -30, 0, 30); Label.Position = UDim2.new(0, 15, 0, 5); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(220, 220, 220); Label.Font = Enum.Font.GothamBold; Label.TextSize = 16; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = Frame
+    local ValueLabel = Instance.new("TextLabel"); ValueLabel.Size = UDim2.new(0, 50, 0, 30); ValueLabel.Position = UDim2.new(1, -65, 0, 5); ValueLabel.BackgroundTransparency = 1; ValueLabel.Text = Settings[flag]; ValueLabel.TextColor3 = Color3.fromRGB(255, 60, 60); ValueLabel.Font = Enum.Font.GothamBold; ValueLabel.TextSize = 16; ValueLabel.TextXAlignment = Enum.TextXAlignment.Right; ValueLabel.Parent = Frame
+    local SliderBg = Instance.new("Frame"); SliderBg.Size = UDim2.new(1, -30, 0, 10); SliderBg.Position = UDim2.new(0, 15, 0, 45); SliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 65); SliderBg.Parent = Frame; local SCorner = Instance.new("UICorner"); SCorner.CornerRadius = UDim.new(1, 0); SCorner.Parent = SliderBg
     local defaultPercent = (Settings[flag] - minVal) / (maxVal - minVal)
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new(defaultPercent, 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    SliderFill.Parent = SliderBg
-    local FCorner = Instance.new("UICorner") FCorner.CornerRadius = UDim.new(1, 0) FCorner.Parent = SliderFill
-
-    local SliderBtn = Instance.new("TextButton")
-    SliderBtn.Size = UDim2.new(1, 0, 1, 20)
-    SliderBtn.Position = UDim2.new(0, 0, 0, -10)
-    SliderBtn.BackgroundTransparency = 1
-    SliderBtn.Text = ""
-    SliderBtn.Parent = SliderBg
-
+    local SliderFill = Instance.new("Frame"); SliderFill.Size = UDim2.new(defaultPercent, 0, 1, 0); SliderFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60); SliderFill.Parent = SliderBg; local FCorner = Instance.new("UICorner"); FCorner.CornerRadius = UDim.new(1, 0); FCorner.Parent = SliderFill
+    local SliderBtn = Instance.new("TextButton"); SliderBtn.Size = UDim2.new(1, 0, 1, 20); SliderBtn.Position = UDim2.new(0, 0, 0, -10); SliderBtn.BackgroundTransparency = 1; SliderBtn.Text = ""; SliderBtn.Parent = SliderBg
     local isSliding = false
     SliderBtn.MouseButton1Down:Connect(function() isSliding = true end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then isSliding = false end
-    end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then isSliding = false end end)
     UserInputService.InputChanged:Connect(function(input)
         if isSliding and input.UserInputType == Enum.UserInputType.MouseMovement then
             local relativeX = math.clamp(UserInputService:GetMouseLocation().X - SliderBg.AbsolutePosition.X, 0, SliderBg.AbsoluteSize.X)
             local percent = relativeX / SliderBg.AbsoluteSize.X
             Settings[flag] = math.floor(minVal + ((maxVal - minVal) * percent))
-            SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            ValueLabel.Text = Settings[flag]
+            SliderFill.Size = UDim2.new(percent, 0, 1, 0); ValueLabel.Text = Settings[flag]
         end
+    end)
+end
+
+local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
+    local Container = Instance.new("Frame"); Container.Size = UDim2.new(1, -20, 0, 50); Container.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Container.ClipsDescendants = true; Container.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Container
+    local TopFrame = Instance.new("Frame"); TopFrame.Size = UDim2.new(1, 0, 0, 50); TopFrame.BackgroundTransparency = 1; TopFrame.Parent = Container
+    local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(0.35, 0, 1, 0); Label.Position = UDim2.new(0, 15, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.TextColor3 = Color3.fromRGB(220, 220, 220); Label.Font = Enum.Font.GothamBold; Label.TextSize = 16; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Parent = TopFrame
+    local DropBtn = Instance.new("TextButton"); DropBtn.Size = UDim2.new(0.6, 0, 0, 35); DropBtn.Position = UDim2.new(1, -15, 0.5, -17.5); DropBtn.AnchorPoint = Vector2.new(1, 0); DropBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); DropBtn.Text = Settings[flag] .. " ▼"; DropBtn.TextColor3 = Color3.fromRGB(255, 255, 255); DropBtn.Font = Enum.Font.Gotham; DropBtn.TextSize = 14; DropBtn.TextTruncate = Enum.TextTruncate.AtEnd; DropBtn.Parent = TopFrame; local DCorner = Instance.new("UICorner"); DCorner.CornerRadius = UDim.new(0, 6); DCorner.Parent = DropBtn
+    local ListFrame = Instance.new("ScrollingFrame"); ListFrame.Size = UDim2.new(1, 0, 1, -55); ListFrame.Position = UDim2.new(0, 0, 0, 55); ListFrame.BackgroundTransparency = 1; ListFrame.BorderSizePixel = 0; ListFrame.ScrollBarThickness = 5; ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y; ListFrame.Parent = Container
+    local ListLayout = Instance.new("UIListLayout"); ListLayout.Padding = UDim.new(0, 4); ListLayout.Parent = ListFrame
+    local isOpen = false
+
+    DropBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            for _, child in ipairs(ListFrame:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+            local options = getOptionsFunc()
+            for _, opt in ipairs(options) do
+                local Btn = Instance.new("TextButton"); Btn.Size = UDim2.new(1, -20, 0, 35); Btn.Position = UDim2.new(0, 10, 0, 0); Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45); Btn.Text = "  " .. opt; Btn.TextColor3 = Color3.fromRGB(200, 200, 200); Btn.Font = Enum.Font.Gotham; Btn.TextSize = 14; Btn.TextXAlignment = Enum.TextXAlignment.Left; Btn.Parent = ListFrame; local BCorner = Instance.new("UICorner"); BCorner.CornerRadius = UDim.new(0, 6); BCorner.Parent = Btn
+                Btn.MouseButton1Click:Connect(function() Settings[flag] = opt; DropBtn.Text = opt .. " ▼"; isOpen = false; Container.Size = UDim2.new(1, -20, 0, 50) end)
+            end
+            local expandedHeight = 50 + math.min(#options * 39, 220); Container.Size = UDim2.new(1, -20, 0, expandedHeight)
+        else Container.Size = UDim2.new(1, -20, 0, 50) end
     end)
 end
 
@@ -419,34 +207,144 @@ end
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
+CreateSlider(PageMain, "Scan Radius (โหมดเกาะ)", "ScanRadius", 50, 5000)
 
--- แท็บ ดันทองคำ
+CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
+    local mobs = {"All (ตีทุกตัวใกล้สุด)"}
+    local found = {}
+    local entities = workspace:FindFirstChild("Entities")
+    if entities then
+        for _, obj in ipairs(entities:GetDescendants()) do
+            if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+                local hum = obj:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+                    local cleanName = string.gsub(obj.Name, "%d+$", ""); cleanName = cleanName:match("^%s*(.-)%s*$")
+                    if cleanName ~= "" and not found[cleanName] then found[cleanName] = true; table.insert(mobs, cleanName) end
+                end
+            end
+        end
+    end
+    return mobs
+end)
+
+-- แท็บ ดันทองคำ / Raid
+CreateSectionLabel(PageHeist, "Raid Modes")
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
-local HeistInfo = Instance.new("TextLabel")
-HeistInfo.Size = UDim2.new(1, -20, 0, 80)
-HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150)
-HeistInfo.Font = Enum.Font.Gotham
-HeistInfo.TextSize = 15
-HeistInfo.TextWrapped = true
-HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. วาร์ปเก็บของจากตู้ (Machines)\n2. โฟกัสตี Bankrupt Gamblers\n3. โฟกัสตี Golden Statue เป็นตัวสุดท้าย"
-HeistInfo.Parent = PageHeist
-local HCorner = Instance.new("UICorner") HCorner.CornerRadius = UDim.new(0, 8) HCorner.Parent = HeistInfo
+CreateToggle(PageHeist, "🔥 Auto Dodge (หลบเลเซอร์)", "AutoDodge")
+local HeistInfo = Instance.new("TextLabel"); HeistInfo.Size = UDim2.new(1, -20, 0, 100); HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35); HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150); HeistInfo.Font = Enum.Font.Gotham; HeistInfo.TextSize = 14; HeistInfo.TextWrapped = true; HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ/Raid (แก้บัค 100%):\n1. หลบ LaserDamage ขึ้นฟ้าอัตโนมัติ!\n2. เก็บของจากตู้ (Machines) ก่อนเสมอ\n3. โฟกัสตี Bankrupt Gamblers\n4. สับบอส (Golden Statue) ตัวสุดท้าย"; HeistInfo.Parent = PageHeist; local HCorner = Instance.new("UICorner"); HCorner.CornerRadius = UDim.new(0, 8); HCorner.Parent = HeistInfo
 
--- 🔥 แท็บ Player (อัปเกรดระบบ Keybind & Speed/Fly)
+-- แท็บ Player
 CreateSectionLabel(PagePlayer, "Speed Controls")
 CreateToggleWithKeybind(PagePlayer, "Enable Speed Mode", "EnableSpeedMode", "SpeedKeybind")
-CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 250) -- สำหรับ CFrame สปีด 250 คือทะลุนรกแล้วครับ
+CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 300)
 
 CreateSectionLabel(PagePlayer, "Fly Controls")
 CreateToggleWithKeybind(PagePlayer, "Enable Fly Mode", "EnableFlyMode", "FlyKeybind")
-CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 1000) -- 🔥 ปรับให้บินทะลุ 1000 ได้เลย!
+CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 1000)
 
 -- ==========================================
 -- 🧠 Core Loop & AI Logic
 -- ==========================================
-if getgenv().FarmLoop then getgenv().FarmLoop:Disconnect() end
 
+-- 🔥 ฟังก์ชันเช็คเลเซอร์ (Auto Dodge)
+local function checkLaserDanger()
+    if not Settings.AutoDodge then return false end
+    local raidMap = workspace:FindFirstChild("Raid Map")
+    if raidMap then
+        local laserFolder = raidMap:FindFirstChild("LaserDamage")
+        if laserFolder then
+            for _, laser in ipairs(laserFolder:GetDescendants()) do
+                -- เช็คว่ามีกลไกเลเซอร์ทำงานอยู่หรือไม่ (มี Part หรือ Collidable)
+                if laser:IsA("BasePart") and laser.CanCollide then return true end
+                if laser.Name == "Collidable" and (laser:IsA("BoolValue") and laser.Value == true or laser:IsA("BasePart") and laser.CanCollide) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- 🔥 ตรรกะเรด (Raid/Golden Heist) แยกต่างหาก ไม่สน Spawner ไม่สนรัศมี!
+local function getRaidMachine()
+    local raidMap = workspace:FindFirstChild("Raid Map")
+    if not raidMap then return nil, nil end
+    local machines = raidMap:FindFirstChild("Machines")
+    if not machines then return nil, nil end
+    
+    for _, obj in ipairs(machines:GetChildren()) do
+        local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt and prompt.Enabled then 
+            local targetPart = obj:FindFirstChildWhichIsA("BasePart") or obj.PrimaryPart 
+            if targetPart then return targetPart, prompt end
+        end
+    end
+    return nil, nil
+end
+
+local function getRaidHeistTarget()
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+    local gamblers, boss = {}, nil
+    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    
+    for _, obj in ipairs(entities:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+            local name = string.lower(obj.Name)
+            if string.match(name, "bankrupt gamblers") then table.insert(gamblers, obj)
+            elseif string.match(name, "golden statue") then boss = obj end
+        end
+    end
+    
+    if #gamblers > 0 and myHrp then
+        local nearestGambler, minDist = nil, math.huge
+        for _, g in ipairs(gamblers) do
+            local gRoot = g:FindFirstChild("HumanoidRootPart") or g:FindFirstChild("Torso") or g.PrimaryPart
+            if gRoot then 
+                local dist = (myHrp.Position - gRoot.Position).Magnitude 
+                if dist < minDist then minDist = dist; nearestGambler = g end 
+            end
+        end
+        if nearestGambler then return nearestGambler end
+    end
+    return boss
+end
+
+-- ตรรกะฟาร์มเกาะปกติ (มีระบบรัศมี)
+local function getLiveScannedMonster()
+    local nearest, minDist = nil, math.huge
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    
+    local entities = workspace:FindFirstChild("Entities")
+    if not entities then return nil end
+    
+    -- ถ้าอยู่ใน Raid Map จะปิดระบบรัศมี เพราะเรดไม่มีเกาะ ให้สแกนเจอได้เลย
+    local inRaid = workspace:FindFirstChild("Raid Map") ~= nil
+
+    for _, obj in ipairs(entities:GetChildren()) do
+        if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+            local hum = obj:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+                local mobRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj.PrimaryPart
+                if mobRoot then
+                    local dist = (hrp.Position - mobRoot.Position).Magnitude
+                    if inRaid or dist <= Settings.ScanRadius then
+                        local cleanName = string.gsub(obj.Name, "%d+$", ""); cleanName = cleanName:match("^%s*(.-)%s*$")
+                        local isMatch = false
+                        if Settings.TargetMob == "All (ตีทุกตัวใกล้สุด)" then isMatch = true 
+                        elseif string.match(string.lower(cleanName), string.lower(Settings.TargetMob)) then isMatch = true end
+                        
+                        if isMatch and dist < minDist then minDist = dist; nearest = obj end
+                    end
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+if getgenv().FarmLoop then getgenv().FarmLoop:Disconnect() end
 getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -454,75 +352,72 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
     local cam = workspace.CurrentCamera
 
     if hrp and hum and hum.Health > 0 then
-
-        -- 🔥 ลอจิกการบิน
+        -- ฟิสิกส์การบิน / สปีด
         if Settings.EnableFlyMode then
-            local flyBV = hrp:FindFirstChild("FlyBV")
-            local flyBG = hrp:FindFirstChild("FlyBG")
-            
-            if not flyBV then
-                flyBV = Instance.new("BodyVelocity")
-                flyBV.Name = "FlyBV"
-                flyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                flyBV.Parent = hrp
-            end
-            if not flyBG then
-                flyBG = Instance.new("BodyGyro")
-                flyBG.Name = "FlyBG"
-                flyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                flyBG.P = 10000
-                flyBG.Parent = hrp
-            end
-            
-            hum.PlatformStand = true
-            flyBG.CFrame = cam.CFrame
-            
+            local flyBV = hrp:FindFirstChild("FlyBV"); local flyBG = hrp:FindFirstChild("FlyBG")
+            if not flyBV then flyBV = Instance.new("BodyVelocity"); flyBV.Name = "FlyBV"; flyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge); flyBV.Parent = hrp end
+            if not flyBG then flyBG = Instance.new("BodyGyro"); flyBG.Name = "FlyBG"; flyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge); flyBG.P = 10000; flyBG.Parent = hrp end
+            hum.PlatformStand = true; flyBG.CFrame = cam.CFrame
             local dir = Vector3.new(0,0,0)
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
-            
-            if dir.Magnitude == 0 and hum.MoveDirection.Magnitude > 0 then
-                local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
-                dir = cam.CFrame:VectorToWorldSpace(localMove)
-            end
-            
-            if dir.Magnitude > 0 then
-                flyBV.Velocity = dir.Unit * Settings.FlySpeed
-            else
-                flyBV.Velocity = Vector3.new(0, 0, 0)
-            end
+            if dir.Magnitude == 0 and hum.MoveDirection.Magnitude > 0 then dir = cam.CFrame:VectorToWorldSpace(cam.CFrame:VectorToObjectSpace(hum.MoveDirection)) end
+            if dir.Magnitude > 0 then flyBV.Velocity = dir.Unit * Settings.FlySpeed else flyBV.Velocity = Vector3.new(0, 0, 0) end
         else
-            -- ปิดบิน คืนค่าฟิสิกส์
-            local flyBV = hrp:FindFirstChild("FlyBV")
-            local flyBG = hrp:FindFirstChild("FlyBG")
-            if flyBV then flyBV:Destroy() end
-            if flyBG then flyBG:Destroy() end
+            local flyBV = hrp:FindFirstChild("FlyBV"); local flyBG = hrp:FindFirstChild("FlyBG")
+            if flyBV then flyBV:Destroy() end; if flyBG then flyBG:Destroy() end
             if hum.PlatformStand then hum.PlatformStand = false end
             
-            -- 🔥 ลอจิก CFrame Speed Mode (ใช้กรณีที่ไม่ได้บินอยู่เท่านั้น)
             if Settings.EnableSpeedMode then
-                hum.WalkSpeed = 16 -- ล็อกอนิเมชันให้เดินปกติ
-                if hum.MoveDirection.Magnitude > 0 then
-                    -- สไลด์เป้าหมายไปข้างหน้าด้วยฟิสิกส์คูณเวลา (ทะลุตัวล็อกความเร็วของเกม)
-                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (Settings.SpeedMultiplier * deltaTime))
-                end
-            end
+                hum.WalkSpeed = 16 
+                if hum.MoveDirection.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (Settings.SpeedMultiplier * deltaTime)) end
+            else hum.WalkSpeed = 16 end
         end
 
-        -- ... (ส่วน AI AutoFarm ตัดออกเพื่อให้โฟกัสที่การเคลื่อนที่)
+        -- Collision Control
+        if Settings.GoldenHeist or Settings.AutoFarm then
+            for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
+        else
+            for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end end
+        end
+
+        -- 🔥 ระบบหลบเลเซอร์ (Auto Dodge) ยิงขึ้นฟ้า!
+        if checkLaserDanger() and (Settings.GoldenHeist or Settings.AutoFarm) then
+            -- ถ้าบอสยิงเลเซอร์ ให้วาร์ปลอยอยู่บนฟ้าความสูง 300 เมตร
+            hrp.CFrame = CFrame.new(hrp.Position.X, 300, hrp.Position.Z)
+            return -- ข้ามลอจิกตีมอนไปเลย รอจนกว่าเลเซอร์จะหาย
+        end
+
+        -- ลอจิกตีมอน
+        if Settings.GoldenHeist then
+            local machinePart, prompt = getRaidMachine()
+            if machinePart and prompt then
+                hrp.CFrame = machinePart.CFrame * CFrame.new(0, 0, 3)
+                if fireproximityprompt then fireproximityprompt(prompt, 1, true)
+                else prompt:InputHoldBegin() task.delay(prompt.HoldDuration + 0.1, function() prompt:InputHoldEnd() end) end
+            else
+                local target = getRaidHeistTarget()
+                if target then
+                    local targetRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
+                    if targetRoot then hrp.CFrame = CFrame.lookAt((targetRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, targetRoot.Position) end
+                end
+            end
+        elseif Settings.AutoFarm then
+            local target = getLiveScannedMonster()
+            if target then
+                local tRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
+                if tRoot then hrp.CFrame = CFrame.lookAt((tRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, tRoot.Position) end
+            end
+        end
     end
 end)
 
 task.spawn(function()
     while task.wait(0.1) do
         if Settings.AutoClick then
-            pcall(function()
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                task.wait(0.05)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-            end)
+            pcall(function() VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1) task.wait(0.05) VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1) end)
         end
     end
 end)
