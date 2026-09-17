@@ -6,13 +6,14 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 getgenv().ToggleUpdates = {}
+getgenv().IsAttacking = false -- 🔥 ตัวแปรใหม่: เช็คว่ากำลังตีมอนอยู่ไหม (แก้บัคแย่งเมาส์)
 
 -- ==========================================
 -- ⚙️ การตั้งค่าระบบ
 -- ==========================================
 local Settings = {
     AutoFarm = false, AutoClick = false, GoldenHeist = false,
-    AutoDodge = true, -- 🔥 ระบบหลบเลเซอร์อัตโนมัติ
+    AutoDodge = true,
     TargetMob = "None", TargetIsland = "None", Distance = 4, ScanRadius = 2500,
     EnableSpeedMode = false, SpeedMultiplier = 150, SpeedKeybind = nil,
     EnableFlyMode = false, FlySpeed = 300, FlyKeybind = nil
@@ -21,7 +22,7 @@ local Settings = {
 -- ==========================================
 -- 🪙 1. สร้าง Tracker Golden Chips (ซ้ายจอ)
 -- ==========================================
-local TRK_Name = "GoldenChipsTracker_V11"
+local TRK_Name = "GoldenChipsTracker_V12"
 local pUI = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 if pUI:FindFirstChild(TRK_Name) then pUI[TRK_Name]:Destroy() end
 
@@ -57,9 +58,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ==========================================
--- 🎨 2. สร้าง Main GUI V11
+-- 🎨 2. สร้าง Main GUI
 -- ==========================================
-local UI_Name = "PremiumRaidGUI_V11"
+local UI_Name = "PremiumRaidGUI_V12"
 if pUI:FindFirstChild(UI_Name) then pUI[UI_Name]:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui"); ScreenGui.Name = UI_Name; ScreenGui.Parent = pUI
@@ -69,7 +70,7 @@ local MainCorner = Instance.new("UICorner"); MainCorner.CornerRadius = UDim.new(
 local TopBar = Instance.new("Frame"); TopBar.Size = UDim2.new(1, 0, 0, 45); TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25); TopBar.Parent = MainFrame
 local TopCorner = Instance.new("UICorner"); TopCorner.CornerRadius = UDim.new(0, 10); TopCorner.Parent = TopBar
 
-local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(0, 450, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0); Title.BackgroundTransparency = 1; Title.Text = "Premium Raid Auto V11 (Dodge + Heist Fix)"; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = TopBar
+local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(0, 450, 1, 0); Title.Position = UDim2.new(0, 20, 0, 0); Title.BackgroundTransparency = 1; Title.Text = "Premium Raid Auto V12 (Dodge Fix & Click Fix)"; Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Parent = TopBar
 
 local MinBtn = Instance.new("TextButton"); MinBtn.Size = UDim2.new(0, 40, 0, 30); MinBtn.Position = UDim2.new(1, -95, 0, 7); MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 18; MinBtn.Parent = TopBar
 local MinCorner = Instance.new("UICorner"); MinCorner.CornerRadius = UDim.new(0, 6); MinCorner.Parent = MinBtn
@@ -200,10 +201,14 @@ local function CreateLiveDropdown(parent, text, flag, getOptionsFunc)
     end)
 end
 
+local function CreateButton(parent, text, callback)
+    local Btn = Instance.new("TextButton"); Btn.Size = UDim2.new(1, -20, 0, 50); Btn.BackgroundColor3 = Color3.fromRGB(50, 100, 200); Btn.Text = text; Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 16; Btn.Parent = parent; local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = Btn
+    Btn.MouseButton1Click:Connect(callback)
+end
+
 -- ==========================================
 -- 📝 หน้าต่าง UI - จัดวาง Layout
 -- ==========================================
--- แท็บ Main
 CreateToggle(PageMain, "Auto Farm (ทั่วไป)", "AutoFarm")
 CreateToggle(PageMain, "Auto Click (MB1)", "AutoClick")
 CreateSlider(PageMain, "Warp Distance", "Distance", 0, 15)
@@ -227,13 +232,11 @@ CreateLiveDropdown(PageMain, "Target Monster", "TargetMob", function()
     return mobs
 end)
 
--- แท็บ ดันทองคำ / Raid
 CreateSectionLabel(PageHeist, "Raid Modes")
 CreateToggle(PageHeist, "ดันทองคำ (Golden Heist AI)", "GoldenHeist")
 CreateToggle(PageHeist, "🔥 Auto Dodge (หลบเลเซอร์)", "AutoDodge")
-local HeistInfo = Instance.new("TextLabel"); HeistInfo.Size = UDim2.new(1, -20, 0, 100); HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35); HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150); HeistInfo.Font = Enum.Font.Gotham; HeistInfo.TextSize = 14; HeistInfo.TextWrapped = true; HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ/Raid (แก้บัค 100%):\n1. หลบ LaserDamage ขึ้นฟ้าอัตโนมัติ!\n2. เก็บของจากตู้ (Machines) ก่อนเสมอ\n3. โฟกัสตี Bankrupt Gamblers\n4. สับบอส (Golden Statue) ตัวสุดท้าย"; HeistInfo.Parent = PageHeist; local HCorner = Instance.new("UICorner"); HCorner.CornerRadius = UDim.new(0, 8); HCorner.Parent = HeistInfo
+local HeistInfo = Instance.new("TextLabel"); HeistInfo.Size = UDim2.new(1, -20, 0, 100); HeistInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 35); HeistInfo.TextColor3 = Color3.fromRGB(150, 255, 150); HeistInfo.Font = Enum.Font.Gotham; HeistInfo.TextSize = 14; HeistInfo.TextWrapped = true; HeistInfo.Text = "ℹ️ ลอจิกดันทองคำ:\n1. ดอดจ์เลเซอร์ขึ้นฟ้า\n2. เก็บของตู้รางวัล\n3. โฟกัสตี Bankrupt Gamblers\n4. ตี Golden Statue ท้ายสุด"; HeistInfo.Parent = PageHeist; local HCorner = Instance.new("UICorner"); HCorner.CornerRadius = UDim.new(0, 8); HCorner.Parent = HeistInfo
 
--- แท็บ Player
 CreateSectionLabel(PagePlayer, "Speed Controls")
 CreateToggleWithKeybind(PagePlayer, "Enable Speed Mode", "EnableSpeedMode", "SpeedKeybind")
 CreateSlider(PagePlayer, "Speed Multiplier", "SpeedMultiplier", 16, 300)
@@ -242,36 +245,63 @@ CreateSectionLabel(PagePlayer, "Fly Controls")
 CreateToggleWithKeybind(PagePlayer, "Enable Fly Mode", "EnableFlyMode", "FlyKeybind")
 CreateSlider(PagePlayer, "Fly Speed", "FlySpeed", 16, 1000)
 
+CreateLiveDropdown(PageTP, "Select Island", "TargetIsland", function()
+    local isls = {"None"}
+    local map = workspace:FindFirstChild("Map"); local islandsFolder = map and map:FindFirstChild("Islands")
+    if islandsFolder then
+        for i, island in ipairs(islandsFolder:GetChildren()) do
+            local name = island.Name; if name == "" or name == " " then name = "Island " .. tostring(i) end
+            table.insert(isls, name)
+        end
+    end
+    return isls
+end)
+CreateButton(PageTP, "🚀 Teleport to Island", function()
+    local map = workspace:FindFirstChild("Map"); local islandsFolder = map and map:FindFirstChild("Islands")
+    if not islandsFolder or Settings.TargetIsland == "None" then return end
+    local targetIsland
+    for i, island in ipairs(islandsFolder:GetChildren()) do
+        local name = island.Name; if name == "" or name == " " then name = "Island " .. tostring(i) end
+        if name == Settings.TargetIsland then targetIsland = island; break end
+    end
+    if targetIsland then
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            local spawner = targetIsland:FindFirstChild("Spawner", true)
+            if spawner and spawner:IsA("BasePart") then hrp.CFrame = spawner.CFrame * CFrame.new(0, 5, 0) else hrp.CFrame = targetIsland:GetPivot() * CFrame.new(0, 20, 0) end
+        end
+    end
+end)
+
 -- ==========================================
 -- 🧠 Core Loop & AI Logic
 -- ==========================================
 
--- 🔥 ฟังก์ชันเช็คเลเซอร์ (Auto Dodge)
+-- 🔥 แก้บัคเช็คเลเซอร์ขั้นสุด (เจาะทะลุหาคำว่า Collidable)
 local function checkLaserDanger()
     if not Settings.AutoDodge then return false end
     local raidMap = workspace:FindFirstChild("Raid Map")
     if raidMap then
         local laserFolder = raidMap:FindFirstChild("LaserDamage")
         if laserFolder then
-            for _, laser in ipairs(laserFolder:GetDescendants()) do
-                -- เช็คว่ามีกลไกเลเซอร์ทำงานอยู่หรือไม่ (มี Part หรือ Collidable)
-                if laser:IsA("BasePart") and laser.CanCollide then return true end
-                if laser.Name == "Collidable" and (laser:IsA("BoolValue") and laser.Value == true or laser:IsA("BasePart") and laser.CanCollide) then
-                    return true
+            for _, obj in ipairs(laserFolder:GetDescendants()) do
+                -- เช็คชิ้นส่วนที่ชื่อ Collidable หรือ Part ที่เปิดการชน (CanCollide)
+                if obj.Name == "Collidable" then
+                    if obj:IsA("BoolValue") and obj.Value == true then return true end
+                    if obj:IsA("BasePart") and obj.CanCollide == true then return true end
                 end
+                -- กันเหนียว: เผื่อเป็น BasePart ปกติที่โดนเปิดการชน
+                if obj:IsA("BasePart") and obj.CanCollide then return true end
             end
         end
     end
     return false
 end
 
--- 🔥 ตรรกะเรด (Raid/Golden Heist) แยกต่างหาก ไม่สน Spawner ไม่สนรัศมี!
 local function getRaidMachine()
-    local raidMap = workspace:FindFirstChild("Raid Map")
-    if not raidMap then return nil, nil end
-    local machines = raidMap:FindFirstChild("Machines")
-    if not machines then return nil, nil end
-    
+    local raidMap = workspace:FindFirstChild("Raid Map"); if not raidMap then return nil, nil end
+    local machines = raidMap:FindFirstChild("Machines"); if not machines then return nil, nil end
     for _, obj in ipairs(machines:GetChildren()) do
         local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
         if prompt and prompt.Enabled then 
@@ -283,8 +313,7 @@ local function getRaidMachine()
 end
 
 local function getRaidHeistTarget()
-    local entities = workspace:FindFirstChild("Entities")
-    if not entities then return nil end
+    local entities = workspace:FindFirstChild("Entities"); if not entities then return nil end
     local gamblers, boss = {}, nil
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     
@@ -300,26 +329,19 @@ local function getRaidHeistTarget()
         local nearestGambler, minDist = nil, math.huge
         for _, g in ipairs(gamblers) do
             local gRoot = g:FindFirstChild("HumanoidRootPart") or g:FindFirstChild("Torso") or g.PrimaryPart
-            if gRoot then 
-                local dist = (myHrp.Position - gRoot.Position).Magnitude 
-                if dist < minDist then minDist = dist; nearestGambler = g end 
-            end
+            if gRoot then local dist = (myHrp.Position - gRoot.Position).Magnitude if dist < minDist then minDist = dist; nearestGambler = g end end
         end
         if nearestGambler then return nearestGambler end
     end
     return boss
 end
 
--- ตรรกะฟาร์มเกาะปกติ (มีระบบรัศมี)
 local function getLiveScannedMonster()
     local nearest, minDist = nil, math.huge
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
     
-    local entities = workspace:FindFirstChild("Entities")
-    if not entities then return nil end
-    
-    -- ถ้าอยู่ใน Raid Map จะปิดระบบรัศมี เพราะเรดไม่มีเกาะ ให้สแกนเจอได้เลย
+    local entities = workspace:FindFirstChild("Entities"); if not entities then return nil end
     local inRaid = workspace:FindFirstChild("Raid Map") ~= nil
 
     for _, obj in ipairs(entities:GetChildren()) do
@@ -334,7 +356,6 @@ local function getLiveScannedMonster()
                         local isMatch = false
                         if Settings.TargetMob == "All (ตีทุกตัวใกล้สุด)" then isMatch = true 
                         elseif string.match(string.lower(cleanName), string.lower(Settings.TargetMob)) then isMatch = true end
-                        
                         if isMatch and dist < minDist then minDist = dist; nearest = obj end
                     end
                 end
@@ -350,9 +371,10 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     local cam = workspace.CurrentCamera
+    
+    getgenv().IsAttacking = false -- รีเซ็ตค่าการคลิกทุกเฟรม
 
     if hrp and hum and hum.Health > 0 then
-        -- ฟิสิกส์การบิน / สปีด
         if Settings.EnableFlyMode then
             local flyBV = hrp:FindFirstChild("FlyBV"); local flyBG = hrp:FindFirstChild("FlyBG")
             if not flyBV then flyBV = Instance.new("BodyVelocity"); flyBV.Name = "FlyBV"; flyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge); flyBV.Parent = hrp end
@@ -369,55 +391,68 @@ getgenv().FarmLoop = RunService.Heartbeat:Connect(function(deltaTime)
             local flyBV = hrp:FindFirstChild("FlyBV"); local flyBG = hrp:FindFirstChild("FlyBG")
             if flyBV then flyBV:Destroy() end; if flyBG then flyBG:Destroy() end
             if hum.PlatformStand then hum.PlatformStand = false end
-            
             if Settings.EnableSpeedMode then
                 hum.WalkSpeed = 16 
                 if hum.MoveDirection.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (Settings.SpeedMultiplier * deltaTime)) end
             else hum.WalkSpeed = 16 end
         end
 
-        -- Collision Control
         if Settings.GoldenHeist or Settings.AutoFarm then
             for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
         else
             for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end end
         end
 
-        -- 🔥 ระบบหลบเลเซอร์ (Auto Dodge) ยิงขึ้นฟ้า!
+        -- 🔥 Auto Dodge: ถ้าเลเซอร์มา พุ่งขึ้นฟ้า! (ไม่เซ็ต IsAttacking)
         if checkLaserDanger() and (Settings.GoldenHeist or Settings.AutoFarm) then
-            -- ถ้าบอสยิงเลเซอร์ ให้วาร์ปลอยอยู่บนฟ้าความสูง 300 เมตร
             hrp.CFrame = CFrame.new(hrp.Position.X, 300, hrp.Position.Z)
-            return -- ข้ามลอจิกตีมอนไปเลย รอจนกว่าเลเซอร์จะหาย
+            return 
         end
 
-        -- ลอจิกตีมอน
         if Settings.GoldenHeist then
             local machinePart, prompt = getRaidMachine()
             if machinePart and prompt then
                 hrp.CFrame = machinePart.CFrame * CFrame.new(0, 0, 3)
+                getgenv().IsAttacking = true -- เริ่มการโจมตี
                 if fireproximityprompt then fireproximityprompt(prompt, 1, true)
                 else prompt:InputHoldBegin() task.delay(prompt.HoldDuration + 0.1, function() prompt:InputHoldEnd() end) end
             else
                 local target = getRaidHeistTarget()
                 if target then
                     local targetRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
-                    if targetRoot then hrp.CFrame = CFrame.lookAt((targetRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, targetRoot.Position) end
+                    if targetRoot then 
+                        hrp.CFrame = CFrame.lookAt((targetRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, targetRoot.Position) 
+                        getgenv().IsAttacking = true -- เริ่มการโจมตี
+                    end
                 end
             end
         elseif Settings.AutoFarm then
             local target = getLiveScannedMonster()
             if target then
                 local tRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso") or target.PrimaryPart
-                if tRoot then hrp.CFrame = CFrame.lookAt((tRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, tRoot.Position) end
+                if tRoot then 
+                    hrp.CFrame = CFrame.lookAt((tRoot.CFrame * CFrame.new(0, 0, Settings.Distance)).Position, tRoot.Position) 
+                    getgenv().IsAttacking = true -- เริ่มการโจมตี
+                end
             end
         end
     end
 end)
 
+-- 🔥 3. แก้ออโต้คลิก ไม่ให้แย่งเมาส์ (คลิกตรงกลางจอ & คลิกเฉพาะตอนฟาร์ม)
 task.spawn(function()
     while task.wait(0.1) do
-        if Settings.AutoClick then
-            pcall(function() VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1) task.wait(0.05) VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1) end)
+        -- เช็คว่ากำลังตีมอนอยู่หรือเปล่า (ถ้าเดินเล่นอยู่ จะไม่คลิกกวนใจ)
+        if Settings.AutoClick and getgenv().IsAttacking then
+            pcall(function()
+                local cam = workspace.CurrentCamera
+                local midX = cam.ViewportSize.X / 2
+                local midY = cam.ViewportSize.Y / 2
+                -- เล็งไปที่กึ่งกลางจอแทนที่จะเป็นซ้ายบน
+                VirtualInputManager:SendMouseButtonEvent(midX, midY, 0, true, game, 1)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(midX, midY, 0, false, game, 1)
+            end)
         end
     end
 end)
